@@ -11,7 +11,7 @@ public class VcfReader
 {
     public static void main( String[] args ) throws IOException {
         VCFCodec vcfCodec = new VCFCodec();
-        final String vcfPath = "/Users/zhouyuda/Desktop/c4lab/c4Lab_pharmacogenomics/A0087Y_09182015_bwamem.filtered.haplotype.SnpIndel.vcf";
+        final String vcfPath = "D:/lab/A0087Y_09182015_bwamem.filtered.haplotype.SnpIndel.vcf";
 
         BufferedReader schemaReader = new BufferedReader(new FileReader(vcfPath));
 
@@ -27,22 +27,12 @@ public class VcfReader
             vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
                     new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
 
-
-            // print出所有variants
-//            if(!line.startsWith("#")) {
-//                vctx = vcfCodec.decode(line);
-//                System.out.println("ref: "+vctx.getReference() + " alt:" + vctx.getAlternateAlleles().get(0) + " GT: " +
-//                        vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() );
-//            }
-
-
-            // print出所有有rsID的variants
             if(!line.startsWith("#")) {
                 vctx = vcfCodec.decode(line);
-                if(!(vctx.getID()==".")) {
-                    System.out.println("rsID: " + vctx.getID() + "\t\t ref: " + vctx.getReference() + " alt:" + vctx.getAlternateAlleles().get(0) + " GT: " +
-                            vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString());
-                }
+                if(vctx.getAlternateAlleles().get(0).length()>100)
+                System.out.println(" length: "+vctx.getAlternateAlleles().get(0).length()+" ref: "+vctx.getReference() +
+                        " alt:" + vctx.getAlternateAlleles().get(0) + " GT: " +
+                        vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() );
             }
         }
     }
