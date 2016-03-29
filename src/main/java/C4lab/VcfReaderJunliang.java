@@ -1,5 +1,20 @@
 package C4lab;
 
+/**
+ * Created by NIGHT on 2016/3/24.
+ */
+
+import htsjdk.tribble.readers.LineIteratorImpl;
+import htsjdk.tribble.readers.LineReaderUtil;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.VCFCodec;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.StringReader;
+
+
 import htsjdk.tribble.readers.LineIteratorImpl;
 import htsjdk.tribble.readers.LineReaderUtil;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -7,7 +22,7 @@ import htsjdk.variant.vcf.VCFCodec;
 import java.io.*;
 
 
-public class VcfReader
+public class VcfReaderJunliang
 {
     public static void main( String[] args ) throws IOException {
         VCFCodec vcfCodec = new VCFCodec();
@@ -30,11 +45,11 @@ public class VcfReader
             if(!line.startsWith("#")) {
                 vctx = vcfCodec.decode(line);
                 if(vctx.getAlternateAlleles().get(0).length()>100)
-                System.out.println(" length: "+vctx.getAlternateAlleles().get(0).length()+" ref: "+vctx.getReference() +
-                        " alt:" + vctx.getAlternateAlleles().get(0) + " GT: " +
-                        vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() );
+                    System.out.println(" length: "+vctx.getAlternateAlleles().get(0).length()+" ref: "+vctx.getReference() +
+                            " alt:" + vctx.getAlternateAlleles().get(0) + " GT: " +
+                            vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() );
             }
         }
     }
-    // test1
 }
+
