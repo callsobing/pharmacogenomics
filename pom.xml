@@ -4,7 +4,7 @@
 
   <groupId>C4lab</groupId>
   <artifactId>pharmacogenomics</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0.0</version>
   <packaging>jar</packaging>
 
   <name>pharmacogenomics</name>
@@ -66,10 +66,6 @@
                         </goals>
                         <configuration>
                             <transformers>
-                                <!--
-                                Hadoop java.io.IOException: Mkdirs failed to create /some/path
-                                http://stackoverflow.com/questions/10522835/hadoop-java-io-ioexception-mkdirs-failed-to-create-some-path
-                                -->
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
                                 <transformer
@@ -77,10 +73,6 @@
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                                     <resource>reference.conf</resource>
-                                </transformer>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>net.vartotal.db.processor.extractor.Application</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
