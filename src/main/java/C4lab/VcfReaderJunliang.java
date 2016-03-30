@@ -26,7 +26,7 @@ public class VcfReaderJunliang
 {
     public static void main( String[] args ) throws IOException {
         VCFCodec vcfCodec = new VCFCodec();
-        final String vcfPath = "D:/lab/A0087Y_09182015_bwamem.filtered.haplotype.SnpIndel.vcf";
+        final String vcfPath = args[0];
 
         BufferedReader schemaReader = new BufferedReader(new FileReader(vcfPath));
 
