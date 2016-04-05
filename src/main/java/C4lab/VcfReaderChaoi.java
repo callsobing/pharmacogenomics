@@ -6,15 +6,14 @@ import htsjdk.variant.vcf.VCFCodec;
 import java.io.*;
 
 
-public class VcfReader
+public class VcfReaderChaoi
 {
     public static void main( String[] args ) throws IOException {
         VCFCodec vcfCodec = new VCFCodec();
         final String vcfPath = "C:/Users/user/Idealproject/c4lab/src/main/java/C4lab/vfctest.vcf";
-       // final String vcfPath = args[0];
+
         BufferedReader schemaReader = new BufferedReader(new FileReader(vcfPath));
 
-        // vcfPath to folder
         String line;
         String headerLine = "";
         VariantContext vctx;
@@ -34,13 +33,7 @@ public class VcfReader
                             " alt:" + vctx.getAlternateAlleles().get(0) + " GT: " +
                             vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() );
 
-//                public static double calculateAltAlleleFrequency(VariantContext vctx){
-//                    final double altAlleleCount = vctx.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY, 0);
-//                            final double totalCount = vctx.getAttributeAsInt(VCFConstants.ALLELE_NUMBER_KEY, 0); 
-//                            final double aa f= altAlleleCount/totalCount;
-//                    return aaf;
-               // String[] sampleName = vctx.getSampleNames();
-                //vctx a 2 dimenstion arraylist
+
                 String ID = rs587638290;
                 Arraylist<string> sampleNames = vctx.getSampleNames();
                 public static double calculateAltAlleleFrequency( VariantContext vctx, String ID){
@@ -53,6 +46,7 @@ public class VcfReader
                                 {
                                     //list .size()
                                     if(  !int(vctx.getGenotype(sampleName.get(i)).getGenotypeString()).equals(0))
+
                                      counter ++;
                                 }
                             AF = counter / vctx.getCalledChromosome();
