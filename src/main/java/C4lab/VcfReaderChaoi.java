@@ -10,8 +10,8 @@ public class VcfReader
 {
     public static void main( String[] args ) throws IOException {
         VCFCodec vcfCodec = new VCFCodec();
-       // final String vcfPath = "D:/lab/A0087Y_09182015_bwamem.filtered.haplotype.SnpIndel.vcf";
-        final String vcfPath = args[0];
+        final String vcfPath = "C:/Users/user/Idealproject/c4lab/src/main/java/C4lab/vfctest.vcf";
+       // final String vcfPath = args[0];
         BufferedReader schemaReader = new BufferedReader(new FileReader(vcfPath));
 
         // vcfPath to folder
@@ -45,30 +45,22 @@ public class VcfReader
                 Arraylist<string> sampleNames = vctx.getSampleNames();
                 public static double calculateAltAlleleFrequency( VariantContext vctx, String ID){
                  // vctx a list? can get each line in vctx???　vctx = vcfCodec.decode(line);
-                    //if vctx is an arraylist, ? list.get(i)
+
                         static int counter=0;
                         static double AF=0;
                         if (vctx.getID().equals(ID) ) //can filter all the selected rsID
                                 for( i=0;i<=sampleName.size();i++)
                                 {
                                     //list .size()
-                                    if(  !vctx.getGenotype(sampleName.get(i)).getGenotypeString().equals(0))
+                                    if(  !int(vctx.getGenotype(sampleName.get(i)).getGenotypeString()).equals(0))
                                      counter ++;
                                 }
                             AF = counter / vctx.getCalledChromosome();
                     return AF;
                 }
 
-
-
-
-
-                //new
-// or directly use  double calculateAltAlleleFrequency(VariantContext vctx)
-
             }
         }
     }
-    // test1
-    //test2
+
 }
