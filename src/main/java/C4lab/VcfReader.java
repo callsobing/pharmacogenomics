@@ -1,5 +1,4 @@
 package C4lab;
-
 import htsjdk.tribble.readers.LineIteratorImpl;
 import htsjdk.tribble.readers.LineReaderUtil;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -33,6 +32,8 @@ public class VcfReader
                 System.out.println(" length: "+vctx.getAlternateAlleles().get(0).length()+" ref: "+vctx.getReference() +
                         " alt:" + vctx.getAlternateAlleles().get(0) + " GT: " +
                         vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() );
+
+
             }
         }
     }
