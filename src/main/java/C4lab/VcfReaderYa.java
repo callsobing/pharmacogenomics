@@ -30,7 +30,6 @@ public class VcfReaderYa
         String line;
         String headerLine = "";
         Set<String> rsIdsAboveAverage = new HashSet<String>();
-
         BufferedReader schemaReader = new BufferedReader(new FileReader(vcfPath));
 
         while ((line = schemaReader.readLine()) != null) {
@@ -38,7 +37,6 @@ public class VcfReaderYa
                 headerLine = headerLine.concat(line).concat("\n");
                 continue;
             }
-
             if(firstDecode){
                 vcfDecoder(headerLine, vcfCodec);
                 firstDecode = false;
@@ -54,7 +52,6 @@ public class VcfReaderYa
                 if(checkAfGtAverageSingle(vctx)) rsIdsAboveAverage.add(rsId);
                 continue;
             }
-
             String [] rsIdList = vctx.getID().split(";");
             for (int i = 0; i < alleleNumbers; i++) {
                 if(rsIdList.length != alleleNumbers) continue;
