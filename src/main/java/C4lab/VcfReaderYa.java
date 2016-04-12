@@ -49,12 +49,14 @@ public class VcfReaderYa
             sampleNameList.addAll(sampleNames);
             Set<String> caseSampleName = new HashSet<String>(sampleNameList.subList(0,9));
             Set<String> controlSampleName = new HashSet<String>(sampleNameList.subList(10,19));
+            System.out.println("1#### :" + caseSampleName.toString());
+            System.out.println("2@@@@ :" + controlSampleName.toString());
             int alleleNumbers = vctx.getAlternateAlleles().size();
 
             if(alleleNumbers == 1) {
                 Allele allele = vctx.getAlternateAllele(0);
-                if(checkAlleleNotPresenceInAllControl(controlSampleName, vctx, allele) &&
-                        checkAllelePresenceInAllCase(caseSampleName, vctx, allele)) {
+                if(checkAlleleNotPresentInAllControl(controlSampleName, vctx, allele) &&
+                        checkAllelePresentInAllCase(caseSampleName, vctx, allele)) {
                     allelesInAllCasesNoControl += 1;
                     System.out.println("Matched allele id: " + vctx.getID());
                 }
@@ -63,8 +65,8 @@ public class VcfReaderYa
             String [] rsIdList = vctx.getID().split(";");
             for (int i = 0; i < alleleNumbers; i++) {
                 Allele allele = vctx.getAlternateAllele(i);
-                if(checkAlleleNotPresenceInAllControl(controlSampleName, vctx, allele) &&
-                        checkAllelePresenceInAllCase(caseSampleName, vctx, allele)) allelesInAllCasesNoControl += 1;
+                if(checkAlleleNotPresentInAllControl(controlSampleName, vctx, allele) &&
+                        checkAllelePresentInAllCase(caseSampleName, vctx, allele)) allelesInAllCasesNoControl += 1;
             }
         }
         System.out.println("######## Allele number with allele presences in all cases but no controls: " + allelesInAllCasesNoControl);
@@ -89,16 +91,17 @@ public class VcfReaderYa
         return easAf > af && sasAf > af;
     }
 
-    public static boolean checkAlleleNotPresenceInAllControl (Set<String> controlSamples, VariantContext vctx, Allele allele){
+    public static boolean checkAlleleNotPresentInAllControl(Set<String> controlSamples, VariantContext vctx, Allele allele){
         return 0 == vctx.getCalledChrCount(allele, controlSamples);
     }
 
-    public static boolean checkAllelePresenceInAllCase (Set<String> caseSamples, VariantContext vctx, Allele allele){
-        boolean allCaseSampleContains = true;
+    public static boolean checkAllelePresentInAllCase(Set<String> caseSamples, VariantContext vctx, Allele allele){
         for(String sample: caseSamples){
-            allCaseSampleContains = 0 < vctx.getGenotype(sample).countAllele(allele);
+            if(0 == vctx.getGenotype(sample).countAllele(allele)){
+                return false;
+            }
         }
-        return allCaseSampleContains;
+        return true;
     }
 
     public static void calculateAlleleFreq (Integer altAlleleIdx, VariantContext vctx, Set<String> sampleNames, String rsId){
