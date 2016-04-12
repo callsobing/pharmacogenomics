@@ -49,8 +49,6 @@ public class VcfReaderYa
             sampleNameList.addAll(sampleNames);
             Set<String> caseSampleName = new HashSet<String>(sampleNameList.subList(0,9));
             Set<String> controlSampleName = new HashSet<String>(sampleNameList.subList(10,19));
-            System.out.println("1#### :" + caseSampleName.toString());
-            System.out.println("2@@@@ :" + controlSampleName.toString());
             int alleleNumbers = vctx.getAlternateAlleles().size();
 
             if(alleleNumbers == 1) {
