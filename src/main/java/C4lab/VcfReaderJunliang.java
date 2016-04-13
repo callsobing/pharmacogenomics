@@ -59,7 +59,7 @@ public class VcfReaderJunliang
     public static void printSampleGenotypes(VariantContext vctx){
         Set<String> SampleId = vctx.getSampleNames();
         for(String samplename: SampleId) {
-            System.out.println(samplename + vctx.getGenotypes("NA18525"));
+            System.out.println(samplename + vctx.getGenotypes(samplename));
         }
     }
 }
