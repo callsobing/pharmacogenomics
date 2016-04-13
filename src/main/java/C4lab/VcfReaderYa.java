@@ -51,8 +51,8 @@ public class VcfReaderYa
 
             if(firstContent) {
                 sampleNames = vctx.getSampleNamesOrderedByName();
-                caseSampleName = sampleNames.subList(0, 10);
-                controlSampleName = sampleNames.subList(10, 20);
+                caseSampleName = sampleNames.subList(0, 5);
+                controlSampleName = sampleNames.subList(5, 10);
                 firstContent = false;
             }
 
