@@ -42,14 +42,14 @@ public class VcfReaderJunliang
             if(!line.startsWith("#")) {
 
                 vctx = vcfCodec.decode(line);
-                String[] SampleId = vctx.getSampleNames().toString().split(","+"\\s");
+                String[] SampleId = vctx.getSampleNamesOrderedByName().toString().split(","+"\\s");
                 for (int i = 0; i < 10; i++) {
                     if (i < 5)
                         cases[i] = SampleId[i];
                     else
                         control[i-5] = SampleId[i];
                 }
-                cases[0]="NA20845";
+                cases[0]="HG00096";
 
                 boolean isAnswer = true;
                 Allele CompareAllele = vctx.getGenotypes(cases[0]).get(0).getAlleles().get(0);
@@ -75,6 +75,8 @@ public class VcfReaderJunliang
                     Count=Count+1;
                     System.out.println(vctx.getID()+"\t"+Count);
                 }
+                else
+                    System.out.println(Count);
 
 
 
