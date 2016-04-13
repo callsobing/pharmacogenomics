@@ -12,10 +12,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class VcfReaderJunliang
 {
@@ -81,10 +78,19 @@ public class VcfReaderJunliang
 
 
 
+                printSampleGenotypes(vctx);
+
             }
 
         }
 
+    }
+
+    public static void printSampleGenotypes(VariantContext vctx){
+        Set<String> SampleId = vctx.getSampleNames();
+        for(String samplename: SampleId) {
+            System.out.println(samplename + vctx.getGenotypes(samplename));
+        }
     }
 }
 
