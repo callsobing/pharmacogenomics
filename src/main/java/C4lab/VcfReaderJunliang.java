@@ -51,6 +51,8 @@ public class VcfReaderJunliang
                 }
                 cases[0]="HG00096";
 
+
+
                 boolean isAnswer = true;
                 Allele CompareAllele = vctx.getGenotypes(cases[0]).get(0).getAlleles().get(0);
                 for (int j = 0; j < 5; j++) {
@@ -73,10 +75,6 @@ public class VcfReaderJunliang
                     Count=Count+1;
                     System.out.println(vctx.getID()+"\t"+Count);
                 }
-
-
-
-
 
             }
 
