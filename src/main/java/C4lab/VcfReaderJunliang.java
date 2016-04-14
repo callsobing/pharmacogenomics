@@ -28,8 +28,8 @@ public class VcfReaderJunliang
         int Count=0;
 
         //String[] rsid={"rs587697622","rs587638290","rs587736341","rs534965407","rs9609649","rs5845047","rs80690","rs137506","rs138355780"};
-        String[] cases =new String[10];
-        String[] control =new String[10];
+        String[] cases =new String[5];
+        String[] control =new String[5];
 
         while ((line = schemaReader.readLine()) != null) {
             if(line.startsWith("#")) {
@@ -51,22 +51,22 @@ public class VcfReaderJunliang
                 }
                 cases[0]="HG00096";
 
+
+
                 boolean isAnswer = true;
                 Allele CompareAllele = vctx.getGenotypes(cases[0]).get(0).getAlleles().get(0);
-                for (int j = 0;j < 5;j++) {
+                for (int j = 0; j < 5; j++) {
                     Allele FirstAllele = vctx.getGenotypes(cases[j]).get(0).getAlleles().get(0);
                     Allele SecondAllele = vctx.getGenotypes(cases[j]).get(0).getAlleles().get(1);
                     if(FirstAllele!=CompareAllele||SecondAllele!=CompareAllele) {
-                        j=5;
                         isAnswer=false;
                         break;
                     }
                 }
-                for(int k = 0;k<5;k++) {
+                for(int k = 0; k < 5; k++) {
                     Allele FirstAllele = vctx.getGenotypes(control[k]).get(0).getAlleles().get(0);
                     Allele SecondAllele = vctx.getGenotypes(control[k]).get(0).getAlleles().get(1);
                     if(FirstAllele==CompareAllele||SecondAllele==CompareAllele||!isAnswer) {
-                        k=5;
                         isAnswer=false;
                         break;
                     }
@@ -75,11 +75,6 @@ public class VcfReaderJunliang
                     Count=Count+1;
                     System.out.println(vctx.getID()+"\t"+Count);
                 }
-                else
-                    System.out.println(Count);
-
-
-
 
             }
 
