@@ -31,7 +31,12 @@ public class VcfReaderYuta {
                 "rs137506",
                 "rs138355780",
         };
-        List<String> sampleNames = new ArrayList<String>();
+
+        List<String> allSampleNames = new ArrayList<String>(100);
+        List<String> caseSampleNames = new ArrayList<String>(100);
+        List<String> controlSampleNames = new ArrayList<String>(100);
+        boolean doneOnce = false;
+        boolean doneOnce2 = false;
 
         /* =========讀檔(READ FILE)======== */
         final String VcfPath = args[0];
@@ -48,11 +53,14 @@ public class VcfReaderYuta {
             }
             VCFHeader head = (VCFHeader)vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
                     new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
+
+
+
             if (!line.startsWith("#")) {        //開始對data lines(每一筆variants)的操作：
                 vctx = vcfCodec.decode(line);
         /* =============================== */
 
-                PrintvctxProperties(vctx,head);
+
 
                 /* =====操作vctx(play w/ vctx)===== */
 
@@ -80,14 +88,27 @@ public class VcfReaderYuta {
                 }
                 */
 
-//                if(firstContent) {
-                     sampleNames = vctx.getSampleNamesOrderedByName();
-//                    caseSampleName = sampleNames.subList(0, 5);
-//                    controlSampleName = sampleNames.subList(5, 10);
-//                    firstContent = false;
-//                }
+                // 用一個list把 sample ids裝起來，把list的1..10的名字存起來當成case，把list的11..20的名字存起來當成control
+                if(!doneOnce) {
+                    allSampleNames = vctx.getSampleNamesOrderedByName();
+                    for (int i=0;i<10;i++){
+                        caseSampleNames.add(allSampleNames.get(i));
+                    }
+                    for (int i=10;i<20;i++) {
+                        controlSampleNames.add(allSampleNames.get(i));
+                    }
+                    doneOnce=true;
+                    continue;
+                }
 
-
+                if(!doneOnce2){
+                    System.out.println(allSampleNames.size());
+                    System.out.println(caseSampleNames);
+                    System.out.println(controlSampleNames);
+                    doneOnce2=true;
+                    continue;
+                }
+//                PrintvctxProperties(vctx,head);
 
 
                 /* 2016/03/17 hw: 找出所有有rsID的Variants */
