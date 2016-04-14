@@ -5,11 +5,13 @@ import htsjdk.tribble.readers.LineReaderUtil;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFCodec;
+import htsjdk.variant.vcf.VCFHeader;
 import org.apache.tools.ant.taskdefs.Tar;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 
@@ -29,7 +31,7 @@ public class VcfReaderYuta {
                 "rs137506",
                 "rs138355780",
         };
-
+        List<String> sampleNames = new ArrayList<String>();
 
         /* =========讀檔(READ FILE)======== */
         final String VcfPath = args[0];
@@ -44,14 +46,49 @@ public class VcfReaderYuta {
                 headerLine = headerLine.concat(line).concat("\n");  //先將metadata lines的部分存到headerLine
                 continue;
             }
-            vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
+            VCFHeader head = (VCFHeader)vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
                     new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
             if (!line.startsWith("#")) {        //開始對data lines(每一筆variants)的操作：
                 vctx = vcfCodec.decode(line);
         /* =============================== */
 
+                PrintvctxProperties(vctx,head);
 
                 /* =====操作vctx(play w/ vctx)===== */
+
+                /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少/
+                /*
+                用vcfdecoder去幫你把header讀actualheader
+                用一個list把 sample ids裝起來
+                把list的1..10的名字存起來當成case
+                把list的11..20的名字存起來當成control
+                ​
+                如果(allele的數量是一個){
+                    抓出那個allele是誰
+                            去算出cases被call出這個allele的數量有多少
+                    去算出controls被call出這個allele的數量有多少
+                    如果(cases全部都有，control通通沒有) 計數器+1
+                }
+
+                如果(allele的數量在兩個以上){
+                    迴圈(第一個allele .. 最後一個allele){
+                        抓出那個allele是誰
+                                去算出cases被call出這個allele的數量有多少
+                        去算出controls被call出這個allele的數量有多少
+                        如果(cases全部都有，control通通沒有) 計數器+1
+                    }
+                }
+                */
+
+//                if(firstContent) {
+                     sampleNames = vctx.getSampleNamesOrderedByName();
+//                    caseSampleName = sampleNames.subList(0, 5);
+//                    controlSampleName = sampleNames.subList(5, 10);
+//                    firstContent = false;
+//                }
+
+
+
 
                 /* 2016/03/17 hw: 找出所有有rsID的Variants */
 //                printAllAllelesWithRSID(vctx);
@@ -87,6 +124,7 @@ public class VcfReaderYuta {
 
         }
 
+
         /* 2016/03/31 hw1.v2: 用AFComparision()計算chr22 vcf裡面SAS,EAS的allele frequency都高於total的AF的個數有幾個 */
 //        System.out.println("No. of variants with (SAS_AF>AF) and (EAS_AF>AF):"+count);
 
@@ -110,7 +148,31 @@ public class VcfReaderYuta {
         System.out.println("Process Finished.");
     }
 
+    /*以sout測試各種VariantContext的methods和members*/
+    public static void PrintvctxProperties(VariantContext vctx, VCFHeader head){
+        System.out.println(
+                " RsID: \t" + vctx.getID() + "\n"+
+                        " vctx.toString(): \t" + vctx.toString()+"\n\n"+
 
+                        " -ref: \t" + vctx.getReference() +"\n"+
+                        " -alt: \t" + vctx.getAlternateAlleles() +"\n"+
+                        " -first alt: \t" + vctx.getAlternateAlleles().get(0) +"\n"+
+                        " -first alt length: \t" + vctx.getAlternateAlleles().get(0).length() +"\n"+
+                        " -allele Numbers: \t" + vctx.getAlternateAlleles().size()+"\n\n"+
+
+                        " -GT: \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() +"\n"+
+                        " -total samples: \t" + vctx.getNSamples() + "\n"+
+                        " -total chrms(2x total sample): \t" + vctx.getCalledChrCount() + "\n\n"+
+
+                        "Other properties:\n"+
+                        " -getContig(): \t" + vctx.getContig() + "\n"+
+                        " -getSource(): \t" + vctx.getSource() + "\n"+
+                        " -calcVCFGenotypeKeys(): \t" + vctx.calcVCFGenotypeKeys(head)+"\n"+
+                        " -getCommonInfo(): "+vctx.getCommonInfo()+ "\n"
+
+                        +"-----------------------\n"
+        );
+    }
 
     /*讀vcf檔，找出SAS_AF與EAS_AF皆大於AF的Variants，並回報符合條件的variants個數*/
     public static int CompareAllVariantsAFs(String vcfPath) throws IOException{
