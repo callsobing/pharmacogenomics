@@ -32,9 +32,9 @@ public class VcfReaderYuta {
                 "rs138355780",
         };
 
-        List<String> allSampleNames = new ArrayList<String>(100);
-        List<String> caseSampleNames = new ArrayList<String>(100);
-        List<String> controlSampleNames = new ArrayList<String>(100);
+        List<String> allSampleNames = new ArrayList<String>();
+        List<String> caseSampleNames = new ArrayList<String>();
+        List<String> controlSampleNames = new ArrayList<String>();
         boolean doneOnce = false;
         boolean doneOnce2 = false;
 
@@ -61,8 +61,7 @@ public class VcfReaderYuta {
         /* =============================== */
 
 
-
-                /* =====操作vctx(play w/ vctx)===== */
+            /* =====操作vctx(play w/ vctx)===== */
 
                 /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少/
                 /*
@@ -73,7 +72,7 @@ public class VcfReaderYuta {
                 ​
                 如果(allele的數量是一個){
                     抓出那個allele是誰
-                            去算出cases被call出這個allele的數量有多少
+                    去算出cases被call出這個allele的數量有多少
                     去算出controls被call出這個allele的數量有多少
                     如果(cases全部都有，control通通沒有) 計數器+1
                 }
@@ -81,14 +80,14 @@ public class VcfReaderYuta {
                 如果(allele的數量在兩個以上){
                     迴圈(第一個allele .. 最後一個allele){
                         抓出那個allele是誰
-                                去算出cases被call出這個allele的數量有多少
+                        去算出cases被call出這個allele的數量有多少
                         去算出controls被call出這個allele的數量有多少
                         如果(cases全部都有，control通通沒有) 計數器+1
                     }
                 }
                 */
 
-                // 用一個list把 sample ids裝起來，把list的1..10的名字存起來當成case，把list的11..20的名字存起來當成control
+                // STEP1: 用一個list把 sample ids裝起來，把list的1..10的名字存起來當成case，把list的11..20的名字存起來當成control
                 if(!doneOnce) {
                     allSampleNames = vctx.getSampleNamesOrderedByName();
                     for (int i=0;i<10;i++){
@@ -101,6 +100,7 @@ public class VcfReaderYuta {
                     continue;
                 }
 
+                // 測試用
                 if(!doneOnce2){
                     System.out.println(allSampleNames.size());
                     System.out.println(caseSampleNames);
@@ -108,7 +108,33 @@ public class VcfReaderYuta {
                     doneOnce2=true;
                     continue;
                 }
-//                PrintvctxProperties(vctx,head);
+
+                // STEP2: 如果allele的數量是一個，抓出那個allele是誰
+                if(vctx.getNAlleles()-1==1) {
+                    Allele allele = vctx.getAlternateAllele(0);
+
+                    // STEP3: 去算出cases被call出這個allele的數量有多少
+                    for (String sampleName:caseSampleNames){
+                        System.out.println(sampleName);
+
+                    }
+
+                    // STEP4: 去算出controls被call出這個allele的數量有多少
+                    for (String sampleName:controlSampleNames){
+
+                    }
+
+                    // STEP5: 如果(cases全部都有，control通通沒有) 計數器+1
+
+                }
+
+                // STEP6: 如果(allele的數量在兩個以上，對每個Allels重複STEP3~5的計算
+                else {
+                    for (int i=0;i<vctx.getNAlleles()-1;i++){
+                        Allele alleles = vctx.getAlternateAllele(i);
+
+                    }
+                }
 
 
                 /* 2016/03/17 hw: 找出所有有rsID的Variants */
@@ -180,6 +206,7 @@ public class VcfReaderYuta {
                         " -first alt: \t" + vctx.getAlternateAlleles().get(0) +"\n"+
                         " -first alt length: \t" + vctx.getAlternateAlleles().get(0).length() +"\n"+
                         " -allele Numbers: \t" + vctx.getAlternateAlleles().size()+"\n\n"+
+                        " -allele Numbers': \t" + vctx.getNAlleles()+
 
                         " -GT: \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() +"\n"+
                         " -total samples: \t" + vctx.getNSamples() + "\n"+
