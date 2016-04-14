@@ -53,20 +53,24 @@ public class VcfReaderChaoi
 //                    System.out.println(" length: "+vctx.getAlternateAlleles().get(0).length()+" ref: "+vctx.getReference() +
 //                            " alt:" + vctx.getAlternateAlleles().get(0) + " GT: " +
 //                            vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() );
-                Set<String> sampleNames = vctx.getSampleNames();
-                List<String> sampleNamesList = new ArrayList<String>(sampleNames);
-                List<String> subCase = new ArrayList<String>(sampleNamesList.subList(0, 9));
-                List<String> subControl = new ArrayList<String>(sampleNamesList.subList(10, 19));
+            //    Set<String> sampleNames = vctx.getSampleNames();
+               // List<String> sampleNamesList = new ArrayList<String>(sampleNames);
+//                List<String> subCase = new ArrayList<String>(sampleNamesList.subList(0, 9));
+//                List<String> subControl = new ArrayList<String>(sampleNamesList.subList(10, 19));
+
+                List<String> sampleNamesOrder = vctx.getSampleNamesOrderedByName();
+                List<String> subCase  = sampleNamesOrder.subList(1,2);
+                List<String> subControl = sampleNamesOrder.subList(2,3);
 
                 // alleleNumbers  for every line of vctx count altAlleles #
                 int alleleNumbers = vctx.getAlternateAlleles().size();
                 for (  int  i=0; i<alleleNumbers ;i++){
                     String altAllele = vctx.getAlternateAllele(i).getBaseString(); // A or T or ATTC....
-                    if(equalitySampleAllele(vctx, subCase, altAllele)==10 && (equalitySampleAllele(vctx, subControl, altAllele)==0)){
+                    if(equalitySampleAllele(vctx, subCase, altAllele)==1 && (equalitySampleAllele(vctx, subControl, altAllele)==0)){
                         count++;
                     }
                 }
-                System.out.println("number of variants that satisfy the case-control condition : "+ count);
+               // System.out.println("number of variants that satisfy the case-control condition : "+ count);
 
 //
 //                String ID = "rs71252250";
@@ -82,6 +86,7 @@ public class VcfReaderChaoi
    //             }
             }
         }
+          System.out.println("number of variants that satisfy the case-control condition : "+ count);
     }
 
 //    public static double calculateAltAlleleFrequency(VariantContext vctx, String ID, Set<String> sampleNames, String altSeq) {
@@ -112,7 +117,7 @@ public class VcfReaderChaoi
 //        return AF;
 //    }
 
-    public static int equalitySampleAllele(VariantContext vctx, List<String> samples, String altAllele){
+    private static int equalitySampleAllele(VariantContext vctx, List<String> samples, String altAllele){
         int counter=0;
         for (String sample : samples) {
             String genotypeString = vctx.getGenotype(sample).getGenotypeString();
