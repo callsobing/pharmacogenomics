@@ -84,33 +84,33 @@ public class VcfReaderChaoi
         }
     }
 
-    public static double calculateAltAlleleFrequency(VariantContext vctx, String ID, Set<String> sampleNames, String altSeq) {
-
-        int counter = 0;
-        double AF = 0.0;
-
-        if (vctx.getID().equals(ID)) { //can filter all the selected rsID
-            for(String sampleName: sampleNames){
-                String genotypeString = vctx.getGenotype(sampleName).getGenotypeString();
-              //  System.out.println(vctx.getGenotype(sampleName)); getGenotype return an object,
-               //System.out.println(genotypeString);// return the genotype
-                String [] alleles = genotypeString.split("/"); // for every sample its genotype string is store in alleles array
-              //  System.out.println(alleles);
-                String allele1 = alleles[0];
-                String allele2 = alleles[1];
-
-               // System.out.println(allele1 + " @@@@ " + allele2); // Just print for debug
-                if (allele1.equals(altSeq)) {
-                    counter++;
-                }
-                if (allele2.equals(altSeq)) {
-                    counter++;
-                }
-            }
-        }
-        AF = counter / vctx.getCalledChrCount();
-        return AF;
-    }
+//    public static double calculateAltAlleleFrequency(VariantContext vctx, String ID, Set<String> sampleNames, String altSeq) {
+//
+//        int counter = 0;
+//        double AF = 0.0;
+//
+//        if (vctx.getID().equals(ID)) { //can filter all the selected rsID
+//            for(String sampleName: sampleNames){
+//                String genotypeString = vctx.getGenotype(sampleName).getGenotypeString();
+//              //  System.out.println(vctx.getGenotype(sampleName)); getGenotype return an object,
+//               //System.out.println(genotypeString);// return the genotype
+//                String [] alleles = genotypeString.split("/"); // for every sample its genotype string is store in alleles array
+//              //  System.out.println(alleles);
+//                String allele1 = alleles[0];
+//                String allele2 = alleles[1];
+//
+//               // System.out.println(allele1 + " @@@@ " + allele2); // Just print for debug
+//                if (allele1.equals(altSeq)) {
+//                    counter++;
+//                }
+//                if (allele2.equals(altSeq)) {
+//                    counter++;
+//                }
+//            }
+//        }
+//        AF = counter / vctx.getCalledChrCount();
+//        return AF;
+//    }
 
     public static int equalitySampleAllele(VariantContext vctx, List<String> samples, String altAllele){
         int counter=0;
