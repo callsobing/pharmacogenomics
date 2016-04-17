@@ -33,9 +33,7 @@ public class VcfReaderYuta {
 
 
         /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少(ans==32)*/
-        Sampling(VcfPath);
-        Sampling(VcfPath);
-        Sampling(VcfPath);
+//        Sampling(VcfPath);
 
 
         /* 2016/03/31 hw1.v2: 用AFComparision()計算chr22 vcf裡面SAS,EAS的allele frequency都高於total的AF的個數有幾個 */
@@ -73,13 +71,20 @@ public class VcfReaderYuta {
             }
             VCFHeader head = (VCFHeader)vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
                     new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
+            List AllSampleName = head.getSampleNamesInOrder();
 
+
+            /* 2016/04/14 hw: 隨機取 5 vs 5 的sample set，重複做200次 */
+            RandomSampleName(head,20); // ramdomly generated a List of 20 sample names
 
 
             if (!line.startsWith("#")) {        //開始對data lines(每一筆variants)的操作：
                 vctx = vcfCodec.decode(line);
         /* =============================== */
         /* ========= play w/ vctx ======== */
+
+//                PrintvctxProperties(vctx,head);
+
 
 
                 /* 2016/03/17 hw: 找出所有有rsID的Variants */
@@ -112,6 +117,7 @@ public class VcfReaderYuta {
         /* =============================== */
             }
         }
+
 
 
         // timer and finishing messange
@@ -188,7 +194,6 @@ public class VcfReaderYuta {
 
                     // STEP3: 去算出cases被call出這個allele的數量有多少
                     for (String caseSampleName:caseSampleNames){
-//                        if(vctx.getGenotype(caseSampleName).getAlleles().toString().contains(onlyAlt)) caseCalled++;
                         if((vctx.getGenotype(caseSampleName).getAllele(0).toString().equals(onlyAlt))||
                                 (vctx.getGenotype(caseSampleName).getAllele(1).toString().equals(onlyAlt))) caseCalled++;
                     }
@@ -201,7 +206,7 @@ public class VcfReaderYuta {
 
                     // STEP5: 如果(cases全部都有，control通通沒有) 計數器+1
                     if((caseCalled==caseSampleNames.size())&&(controlCalled==0)){
-//                        System.out.printf("%s matched search condition.(ref:%s, alt:%s)\n",vctx.getID(),ref,onlyAlt);
+                        System.out.printf("%s matched search condition.(ref:%s, alt:%s)\n",vctx.getID(),ref,onlyAlt);
                         NMatchedConditions++;
                     }
                 }
@@ -227,7 +232,7 @@ public class VcfReaderYuta {
 
                         // 若 case sample的計數器=5 且 control sample的計數器=0，總計數器++
                         if((caseCalled==caseSampleNames.size())&&(controlCalled==0)){
-//                            System.out.printf("%s matched search condition.(ref:%s, alt:%s)\n",vctx.getID(),ref,ithAlt);
+                            System.out.printf("%s matched search condition.(ref:%s, alt:%s)\n",vctx.getID(),ref,ithAlt);
                             NMatchedConditions++;
                         }
                     }
@@ -240,46 +245,62 @@ public class VcfReaderYuta {
         return 0;
     }
 
+    /* Randomly generate a List of N sample names. (use .tailSet() and .headSet() to get 2 sets for "case" and "control" */
+    public static List<String> RandomSampleName(VCFHeader head, int N){
+
+        int NSample = head.getNGenotypeSamples();  // 2504 samples in total
+        List<String> AllNames = head.getSampleNamesInOrder();
+        Random rng = new Random();
+        SortedSet<String> generated = new TreeSet<String>();
+        while (generated.size()<N){
+            Integer next = rng.nextInt(NSample)+1;
+            generated.add(AllNames.get(next));
+        }
+
+        List<String> l = new ArrayList<String>(generated);
+
+        System.out.println("Generated a List of N sample names: "+l);
+        return l;
+    }
+
     /*以sout測試各種VariantContext的methods和members*/
     public static void PrintvctxProperties(VariantContext vctx, VCFHeader head){
         System.out.println("-----------------------\n"+
 
-                        " RsID: \t" + vctx.getID() + "\n"+
+                        " RsID: \t" + vctx.getID() + "\n"+  // rs62224611
                         " vctx.toString(): \t" + vctx.toString()+"\n\n"+
+// [VC Unknown @ 22:121210000 Q100.00 of type=SNP alleles=[A*, C, G] attr={AA=.|||, AC=[478, 17], AF=[0.0954473, 0.00339457],
+// AFR_AF=[0.003, 0], AMR_AF=[0.1239, 0], AN=5008, DP=22548, EAS_AF=[0.0744, 0], EUR_AF=[0.0746, 0.003],
+// MULTI_ALLELIC=true, NS=2504, SAS_AF=[0.2434, 0.0143], VT=SNP}
+// GT=GT	1|0	2|0	0|1	0|2	0|1	0|0	0|0	0|0	0|0	0|0	0|0	1|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	1|0	0|0	0|1	0|0	0|0	0|0	0|0	0|0
+// 0|0	0|1	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0
+// 0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|1	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	1|0	0|0	1|0	0 ...
 
-                        " -ref: \t" + vctx.getReference() +"\n"+
-                        " -alt: \t" + vctx.getAlternateAlleles() +"\n"+
-                        " -first alt: \t" + vctx.getAlternateAlleles().get(0) +"\n"+
-                        " -first alt length: \t" + vctx.getAlternateAlleles().get(0).length() +"\n"+
-                        " -allele Numbers: \t" + vctx.getAlternateAlleles().size() +"\n"+
-                        " -allele Numbers': \t" + vctx.getNAlleles()+"\n\n"+
+                        " -ref: \t" + vctx.getReference() +"\n"+                                        // A*
+                        " -alt: \t" + vctx.getAlternateAlleles() +"\n"+                                 // [C, G]
+                        " -first alt: \t" + vctx.getAlternateAlleles().get(0) +"\n"+                    // C
+                        " -first alt length: \t" + vctx.getAlternateAlleles().get(0).length() +"\n"+    // 1
+                        " -allele Numbers: \t" + vctx.getAlternateAlleles().size() +"\n"+               // 2
+                        " -allele Numbers': \t" + vctx.getNAlleles()+"\n\n"+                            // 3 (1 ref + 2 alt)
 
-                        " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)) +"\n"+
-                        " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getAllele(0) +"\n"+
-                        " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getAllele(1) +"\n"+
-                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(1)) +"\n"+
-                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(1)).getAllele(0) +"\n"+
-                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(1)).getAllele(1) +"\n\n"+
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)) +"\n"+                     // [HG00096 C|A*]
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() +"\n"+ // C|A
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getAllele(0) +"\n"+        // C
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getAllele(1) +"\n"+        // A*
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(1)) +"\n"+                     // [HG00097 G|A*]
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() +"\n"+ // C|A
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(1)).getAllele(0) +"\n"+        // G
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(1)).getAllele(1) +"\n\n"+      // A*
 
-                        " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(3)) +"\n"+
-                        " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(4)) +"\n"+
-                        " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(4)).getGenotypeString() +"\n\n"+
+                        " -total samples: \t" + vctx.getNSamples() + "\n"+                              // 2504
+                        " -total chrms(2x total sample): \t" + vctx.getCalledChrCount() + "\n\n"+       // 5008
 
-//                        " -GT(*|.): \t" + vctx.getGenotypes(vctx.getSampleNamesOrderedByName().get(0)) +"\n"+
-//                        " -GT(*|.): \t" + vctx.getGenotypes(vctx.getSampleNamesOrderedByName().get(0)).get(0) +"\n"+
-//                        " -GT(*|.): \t" + vctx.getGenotypes(vctx.getSampleNamesOrderedByName().get(0)).get(0).getAlleles() +"\n"+
-//                        " -GT(*|.): \t" + vctx.getGenotypes(vctx.getSampleNamesOrderedByName().get(0)).get(0).getAlleles().get(0) +"\n"+
+                "Other properties:\n"+
+                        " -getContig(): \t" + vctx.getContig() + "\n"+                          // 22
+                        " -getSource(): \t" + vctx.getSource() + "\n"+                          // Unknown
+                        " -calcVCFGenotypeKeys(): \t" + vctx.calcVCFGenotypeKeys(head)+"\n"+    // [GT]
 
-                        " -total samples: \t" + vctx.getNSamples() + "\n"+
-                        " -total chrms(2x total sample): \t" + vctx.getCalledChrCount() + "\n\n"+
-
-                        "Other properties:\n"+
-                        " -getContig(): \t" + vctx.getContig() + "\n"+
-                        " -getSource(): \t" + vctx.getSource() + "\n"+
-                        " -calcVCFGenotypeKeys(): \t" + vctx.calcVCFGenotypeKeys(head)+"\n"+
-                        " -getCommonInfo(): "+vctx.getCommonInfo()+ "\n"
-
-                        +"-----------------------\n"
+                        "-----------------------\n"
         );
     }
 
