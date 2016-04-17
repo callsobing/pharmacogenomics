@@ -69,21 +69,29 @@ public class VcfReaderJunliang
                     AlreadyGetID=true;
                 }
 
-                boolean isAnswer = true;
+
                 Allele CompareAllele = vctx.getAlternateAlleles().get(0);
-                for(int i = 0; i < num; i++)
+                for(int i = 0; i < num; i++) {
+                    boolean isAnswer = true;
                     for (int j = 0; j < 5 && isAnswer; j++) {
-                        isAnswer=(!(vctx.getGenotype(cases[i][j]).countAllele(CompareAllele)==0))&&(vctx.getGenotype(control[i][j]).countAllele(CompareAllele)==0);
-                        if(isAnswer) {
-                            Count[i]=Count[i]+1;
-                        }
+                        isAnswer = (!(vctx.getGenotype(cases[i][j]).countAllele(CompareAllele) == 0)) && (vctx.getGenotype(control[i][j]).countAllele(CompareAllele) == 0);
                     }
+                    if (isAnswer) {
+                        Count[i] = Count[i] + 1;
+                    }
+                }
             }
         }
-        for(int i = 0; i < num; i++)
-            System.out.println("sampling"+i+":"+Count[i]);
+        FileWriter out = new FileWriter("output.txt");
+
+        for(int i = 0; i < num; i++) {
+            System.out.println("sampling" + i + ":" + Count[i]);
+            out.write("sampling" + i + ":" + Count[i]);
+        }
         long end = System.currentTimeMillis( );
         System.out.println("time cost : " + (end - start) +"ms");
+        out.write("time cost : " + (end - start) +"ms");
+        out.close();
     }
 }
 
