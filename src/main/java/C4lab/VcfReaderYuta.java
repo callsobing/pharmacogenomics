@@ -6,7 +6,6 @@ import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFHeader;
-import org.apache.tools.ant.taskdefs.Tar;
 
 import java.io.*;
 import java.util.*;
@@ -18,6 +17,7 @@ public class VcfReaderYuta {
     public static void main(String[] args) throws IOException {
 
         long startTimems = System.currentTimeMillis();
+        List<String> AllSampleName = new ArrayList<String>();
         final String VcfPath = args[0];
         String[] TargetRSIDList = {
                 "rs587638290",
@@ -33,7 +33,7 @@ public class VcfReaderYuta {
 
 
         /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少(ans==32)*/
-//        Sampling(VcfPath);
+        SamplingWithFixedSamples(VcfPath);
 
 
         /* 2016/03/31 hw1.v2: 用AFComparision()計算chr22 vcf裡面SAS,EAS的allele frequency都高於total的AF的個數有幾個 */
@@ -71,11 +71,8 @@ public class VcfReaderYuta {
             }
             VCFHeader head = (VCFHeader)vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
                     new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
-            List AllSampleName = head.getSampleNamesInOrder();
+            AllSampleName = head.getSampleNamesInOrder();
 
-
-            /* 2016/04/14 hw: 隨機取 5 vs 5 的sample set，重複做200次 */
-            RandomSampleName(head,20); // ramdomly generated a List of 20 sample names
 
 
             if (!line.startsWith("#")) {        //開始對data lines(每一筆variants)的操作：
@@ -84,7 +81,6 @@ public class VcfReaderYuta {
         /* ========= play w/ vctx ======== */
 
 //                PrintvctxProperties(vctx,head);
-
 
 
                 /* 2016/03/17 hw: 找出所有有rsID的Variants */
@@ -119,6 +115,14 @@ public class VcfReaderYuta {
         }
 
 
+        /* 2016/04/14 hw: 隨機取 5 vs 5 的sample set，重複做200次 */
+
+        // ramdomly generated a List of 20 sample names
+        System.out.println("N random sample names: "+GetRandomSampleNames(AllSampleName,20));
+
+
+
+
 
         // timer and finishing messange
         long totalms = System.currentTimeMillis()-startTimems;
@@ -129,8 +133,11 @@ public class VcfReaderYuta {
     }
 
 
+    /* 2016/04/14 hw: */
+//    public static int
+
     /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少(ans==32) */
-    public static int Sampling(String VcfPath) throws IOException{
+    public static int SamplingWithFixedSamples(String VcfPath) throws IOException{
 
         // variables declaration
         long startTimems = System.currentTimeMillis();
@@ -245,21 +252,20 @@ public class VcfReaderYuta {
         return 0;
     }
 
-    /* Randomly generate a List of N sample names. (use .tailSet() and .headSet() to get 2 sets for "case" and "control" */
-    public static List<String> RandomSampleName(VCFHeader head, int N){
+    /* 2016/04/14 hw: Randomly generate a List of N sample names. (use .tailSet() and .headSet() to get 2 sets for "case" and "control" */
+    public static List<String> GetRandomSampleNames(List<String> AllSampleNames, int N){
 
-        int NSample = head.getNGenotypeSamples();  // 2504 samples in total
-        List<String> AllNames = head.getSampleNamesInOrder();
+        int NSample = AllSampleNames.size();  // 2504 samples in total
         Random rng = new Random();
         SortedSet<String> generated = new TreeSet<String>();
         while (generated.size()<N){
             Integer next = rng.nextInt(NSample)+1;
-            generated.add(AllNames.get(next));
+            generated.add(AllSampleNames.get(next));
         }
 
         List<String> l = new ArrayList<String>(generated);
 
-        System.out.println("Generated a List of N sample names: "+l);
+//        System.out.println("Generated a List of N sample names: "+l);
         return l;
     }
 
