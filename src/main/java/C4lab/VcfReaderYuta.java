@@ -20,7 +20,7 @@ public class VcfReaderYuta {
         final String VcfPath = args[0];
 
 
-        SamplingWithNRandomSamples(VcfPath);
+        SamplingWithNRandomSamples(VcfPath,50,5);
 
 
         /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少(ans==32)*/
@@ -123,11 +123,10 @@ public class VcfReaderYuta {
 
 
     /* 2016/04/14 hw: 隨機取 5 vs 5 的sample set，重複做200次 */
-    public static void SamplingWithNRandomSamples(String VcfPath) throws IOException{
+    public static void SamplingWithNRandomSamples(String VcfPath, int NSampling, int sampleSize) throws IOException{
 
         // variables declaration
-        int N = 20;
-        int sampleSize = 5;
+        int N = NSampling;
         int caseSize = sampleSize;
         List<String> allSampleNames = new ArrayList<String>();
         List<List<String>> target = new LinkedList<List<String>>();
@@ -155,12 +154,13 @@ public class VcfReaderYuta {
             /* prepare the N random list of sample names */
             if(!doneOnce){
                 allSampleNames = head.getSampleNamesInOrder();
+                System.out.println("Target sample names");
                 for(int i=0;i<N;i++){
                     //set the ith row of target to a randomly generated list of sample names
-                    target.add(i,GetRandomSampleNames(allSampleNames,sampleSize+caseSize));
-                    System.out.println(target.get(i));
+                    target.add(i,GetRandomSampleNames(allSampleNames,sampleSize));
+                    target.get(i).addAll(sampleSize,GetRandomSampleNames(allSampleNames,sampleSize));
+                    System.out.println("S"+i+": "+target.get(i));
                 }
-                System.out.println("DONE SETTING allSampleNames");
                 doneOnce=true;
             }
 
@@ -201,7 +201,7 @@ public class VcfReaderYuta {
 
                         // STEP5: 如果(cases全部都有，control通通沒有) 計數器+1
                         if ((caseCalled == caseSampleNames.size()) && (controlCalled == 0)) {
-                            System.out.printf("i=%d, %s matched search condition.(ref:%s, alt:%s)\n", i, vctx.getID(), ref, onlyAlt);
+                            System.out.printf("S%d: %s\t matched criteria.(ref:%s, alt:%s)\n", i, vctx.getID(), ref, onlyAlt);
                             matchCount[i]++;
                         }
                     }
@@ -234,7 +234,7 @@ public class VcfReaderYuta {
 
                             // 若 case sample的計數器=5 且 control sample的計數器=0，總計數器++
                             if ((caseCalled == caseSampleNames.size()) && (controlCalled == 0)) {
-                                System.out.printf("i=%d, %s matched search condition.(ref:%s, alt:%s)\n", i, vctx.getID(), ref, ithAlt);
+                                System.out.printf("S%d: %s\t matched criteria.(ref:%s, alt:%s) *\n", i, vctx.getID(), ref, ithAlt);
                                 matchCount[i]++;
                             }
                         }
@@ -244,8 +244,9 @@ public class VcfReaderYuta {
         }
 
 
+        System.out.printf("\n%d sampling results:\n",N);
         for(int i=0;i<N;i++){
-            System.out.println(target.get(i)+" FOUND "+matchCount[i]);
+            System.out.printf("S%d: %d\n",i,matchCount[i]);
             sumNMatched+=matchCount[i];
         }
 
@@ -263,12 +264,8 @@ public class VcfReaderYuta {
         long totalms = System.currentTimeMillis()-startTimems;
 
 
-        System.out.printf("Averagely %f cases matched critiria. Runtime: %d ms\n",sumNMatched/N,totalms);
+        System.out.printf("On average %2f cases matched critiria. Runtime: %d ms\n",sumNMatched/N,totalms);
 //        return 0;
-    }
-
-    public static void exam(){
-
     }
 
     /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少(ans==32) */
