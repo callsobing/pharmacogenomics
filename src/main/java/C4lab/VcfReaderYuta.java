@@ -11,6 +11,7 @@ import java.io.*;
 import java.util.*;
 
 
+
 public class VcfReaderYuta {
 
     /* main class盡量簡化，以方便之後的使用彈性 */
@@ -123,13 +124,14 @@ public class VcfReaderYuta {
 
 
     /* 2016/04/14 hw: 隨機取 5 vs 5 的sample set，重複做200次 */
-    public static void SamplingWithNRandomSamples(String VcfPath, int NSampling, int sampleSize) throws IOException{
+    public static List<Integer> SamplingWithNRandomSamples(String VcfPath, int NSampling, int sampleSize) throws IOException{
 
         // variables declaration
         int N = NSampling;
         int caseSize = sampleSize;
         List<String> allSampleNames = new ArrayList<String>();
         List<List<String>> target = new LinkedList<List<String>>();
+        List<Integer> report = new LinkedList<Integer>();
         int[] matchCount = new int[N];
         double sumNMatched = 0;
         long startTimems = System.currentTimeMillis();
@@ -247,6 +249,7 @@ public class VcfReaderYuta {
         System.out.printf("\n%d sampling results:\n",N);
         for(int i=0;i<N;i++){
             System.out.printf("S%d: %d\n",i,matchCount[i]);
+            report.add(matchCount[i]);
             sumNMatched+=matchCount[i];
         }
 
@@ -265,10 +268,12 @@ public class VcfReaderYuta {
 
 
         System.out.printf("On average %2f cases matched critiria. Runtime: %d ms\n",sumNMatched/N,totalms);
-//        return 0;
+        return report;
     }
 
-    /*  */
+    /* 2016/04/07 hw: plot histogram from an ArrayList */
+
+
 
     /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少(ans==32) */
     public static int SamplingWithFixedSamples(String VcfPath) throws IOException{
