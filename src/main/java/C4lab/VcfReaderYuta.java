@@ -20,7 +20,7 @@ public class VcfReaderYuta {
         final String VcfPath = args[0];
 
 
-        SamplingWithNRandomSamples(VcfPath,50,5);
+        SamplingWithNRandomSamples(VcfPath,1000,5);
 
 
         /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少(ans==32)*/
@@ -268,6 +268,8 @@ public class VcfReaderYuta {
 //        return 0;
     }
 
+    /*  */
+
     /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少(ans==32) */
     public static int SamplingWithFixedSamples(String VcfPath) throws IOException{
 
@@ -387,7 +389,7 @@ public class VcfReaderYuta {
     /* 2016/04/14 hw: Randomly generate a List of N sample names. (use .tailSet() and .headSet() to get 2 sets for "case" and "control" */
     public static List<String> GetRandomSampleNames(List<String> AllSampleNames, int N){
 
-        int NSample = AllSampleNames.size();  // 2504 samples in total
+        int NSample = AllSampleNames.size()-1;  // 2504 samples in total
         Random rng = new Random();
         SortedSet<String> generated = new TreeSet<String>();
         while (generated.size()<N){
