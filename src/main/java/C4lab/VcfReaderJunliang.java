@@ -17,6 +17,7 @@ import java.util.*;
 public class VcfReaderJunliang
 {
     public static void main( String[] args ) throws IOException {
+        long start = System.currentTimeMillis( ); //紀錄起始時間
         VCFCodec vcfCodec = new VCFCodec();
         final String vcfPath = args[0];
 
@@ -25,11 +26,23 @@ public class VcfReaderJunliang
         String line;
         String headerLine = "";
         VariantContext vctx;
-        int Count=0;
+        int num=200; //設定取樣次數
+        int Count[] = new int [num];
+        boolean AlreadyGetID = false; //紀錄是否已取得sample id
+        String[][] cases = new String[num][5];
+        String[][] control = new String[num][5];
 
-        //String[] rsid={"rs587697622","rs587638290","rs587736341","rs534965407","rs9609649","rs5845047","rs80690","rs137506","rs138355780"};
-        String[] cases =new String[5];
-        String[] control =new String[5];
+        //隨機
+        int rnd;
+        Integer result[][] = new Integer[num][10];
+        HashSet rndSet = new HashSet<Integer>(10);
+        for(int i = 0; i < num; i++)
+            for(int j = 0; j < 10; j++) {
+                rnd=(int)(2500*Math.random());
+                while(!rndSet.add(rnd))
+                    rnd=(int)(2500*Math.random());
+                result[i][j]=rnd;
+            }
 
         while ((line = schemaReader.readLine()) != null) {
             if(line.startsWith("#")) {
@@ -40,48 +53,45 @@ public class VcfReaderJunliang
                     new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
 
             if(!line.startsWith("#")) {
-
                 vctx = vcfCodec.decode(line);
-                String[] SampleId = vctx.getSampleNamesOrderedByName().toString().split(","+"\\s");
-                for (int i = 0; i < 10; i++) {
-                    if (i < 5)
-                        cases[i] = SampleId[i];
-                    else
-                        control[i-5] = SampleId[i];
+
+                //分配sample id
+                if(!AlreadyGetID) {
+                    for (int i = 0; i < num; i++)
+                        for(int j = 0; j < 10; j++) {
+                        if (j < 5)
+                            cases[i][j] = vctx.getSampleNamesOrderedByName().get(result[i][j]);
+                        else
+                            control[i][j - 5] = vctx.getSampleNamesOrderedByName().get(result[i][j]);
+                    }
+                    AlreadyGetID=true;
                 }
-                cases[0]="HG00096";
 
-
-
-                boolean isAnswer = true;
-                Allele CompareAllele = vctx.getGenotypes(cases[0]).get(0).getAlleles().get(0);
-                for (int j = 0; j < 5; j++) {
-                    Allele FirstAllele = vctx.getGenotypes(cases[j]).get(0).getAlleles().get(0);
-                    Allele SecondAllele = vctx.getGenotypes(cases[j]).get(0).getAlleles().get(1);
-                    if(FirstAllele!=CompareAllele||SecondAllele!=CompareAllele) {
-                        isAnswer=false;
-                        break;
+                //比對 符合則次數+1
+                Allele CompareAllele = vctx.getAlternateAlleles().get(0);
+                for(int i = 0; i < num; i++) {
+                    boolean isAnswer = true;
+                    for (int j = 0; j < 5 && isAnswer; j++) {
+                        isAnswer = (!(vctx.getGenotype(cases[i][j]).countAllele(CompareAllele) == 0)) && (vctx.getGenotype(control[i][j]).countAllele(CompareAllele) == 0);
+                    }
+                    if (isAnswer) {
+                        Count[i] = Count[i] + 1;
                     }
                 }
-                for(int k = 0; k < 5; k++) {
-                    Allele FirstAllele = vctx.getGenotypes(control[k]).get(0).getAlleles().get(0);
-                    Allele SecondAllele = vctx.getGenotypes(control[k]).get(0).getAlleles().get(1);
-                    if(FirstAllele==CompareAllele||SecondAllele==CompareAllele||!isAnswer) {
-                        isAnswer=false;
-                        break;
-                    }
-                }
-                if(isAnswer) {
-                    Count=Count+1;
-                    System.out.println(vctx.getID()+"\t"+Count);
-                }
-
             }
-
         }
 
+        //輸出到檔案
+        FileWriter out = new FileWriter("output.txt");
+        for(int i = 0; i < num; i++) {
+            System.out.println("sampling" + i + ":" + Count[i]);
+            out.write("sampling" + i + ":" + (Count[i]+1)+"\n");
+        }
+        long end = System.currentTimeMillis( );//紀錄結束時間
+        System.out.println("time cost : " + (end - start) +"ms");
+        out.write("time cost : " + (end - start) +"ms");//輸出花費時間
+        out.close();
     }
-
-
 }
 
+//問題待解決 1.隨機0~2053  2.沒考慮多個alternate allele的情形

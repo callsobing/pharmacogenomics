@@ -6,13 +6,9 @@ import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFHeader;
-import org.apache.tools.ant.taskdefs.Tar;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 
 public class VcfReaderYuta {
@@ -20,156 +16,15 @@ public class VcfReaderYuta {
     /* main class盡量簡化，以方便之後的使用彈性 */
     public static void main(String[] args) throws IOException {
 
-        final String vcfPath = args[0];
-        String[] TargetRSIDList = {
-                "rs587638290",
-                "rs587736341",
-                "rs534965407",
-                "rs9609649",
-                "rs5845047",
-                "rs80690",
-                "rs137506",
-                "rs138355780",
-        };
-
-        List<String> allSampleNames = new ArrayList<String>();
-        List<String> caseSampleNames = new ArrayList<String>();
-        List<String> controlSampleNames = new ArrayList<String>();
-        boolean doneOnce = false;
-        boolean doneOnce2 = false;
-
-        /* =========讀檔(READ FILE)======== */
+        long startTimems = System.currentTimeMillis();
         final String VcfPath = args[0];
-        BufferedReader schemaReader = new BufferedReader(new FileReader(VcfPath));
-        VCFCodec vcfCodec = new VCFCodec();
-        String line;
-        String headerLine = "";
-        VariantContext vctx;
-        int NFreqHigher = 0;
-        while ((line = schemaReader.readLine()) != null) {
-            if (line.startsWith("#")) {
-                headerLine = headerLine.concat(line).concat("\n");  //先將metadata lines的部分存到headerLine
-                continue;
-            }
-            VCFHeader head = (VCFHeader)vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
-                    new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
 
 
-
-            if (!line.startsWith("#")) {        //開始對data lines(每一筆variants)的操作：
-                vctx = vcfCodec.decode(line);
-        /* =============================== */
+        SamplingWithNRandomSamples(VcfPath,1000,5);
 
 
-            /* =====操作vctx(play w/ vctx)===== */
-
-                /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少/
-                /*
-                用vcfdecoder去幫你把header讀actualheader
-                用一個list把 sample ids裝起來
-                把list的1..10的名字存起來當成case
-                把list的11..20的名字存起來當成control
-                ​
-                如果(allele的數量是一個){
-                    抓出那個allele是誰
-                    去算出cases被call出這個allele的數量有多少
-                    去算出controls被call出這個allele的數量有多少
-                    如果(cases全部都有，control通通沒有) 計數器+1
-                }
-
-                如果(allele的數量在兩個以上){
-                    迴圈(第一個allele .. 最後一個allele){
-                        抓出那個allele是誰
-                        去算出cases被call出這個allele的數量有多少
-                        去算出controls被call出這個allele的數量有多少
-                        如果(cases全部都有，control通通沒有) 計數器+1
-                    }
-                }
-                */
-
-                // STEP1: 用一個list把 sample ids裝起來，把list的1..10的名字存起來當成case，把list的11..20的名字存起來當成control
-                if(!doneOnce) {
-                    allSampleNames = vctx.getSampleNamesOrderedByName();
-                    for (int i=0;i<10;i++){
-                        caseSampleNames.add(allSampleNames.get(i));
-                    }
-                    for (int i=10;i<20;i++) {
-                        controlSampleNames.add(allSampleNames.get(i));
-                    }
-                    doneOnce=true;
-                    continue;
-                }
-
-                // 測試用
-                if(!doneOnce2){
-                    System.out.println(allSampleNames.size());
-                    System.out.println(caseSampleNames);
-                    System.out.println(controlSampleNames);
-                    doneOnce2=true;
-                    continue;
-                }
-
-                // STEP2: 如果allele的數量是一個，抓出那個allele是誰
-                if(vctx.getNAlleles()-1==1) {
-                    Allele allele = vctx.getAlternateAllele(0);
-
-                    // STEP3: 去算出cases被call出這個allele的數量有多少
-                    for (String sampleName:caseSampleNames){
-                        System.out.println(sampleName);
-
-                    }
-
-                    // STEP4: 去算出controls被call出這個allele的數量有多少
-                    for (String sampleName:controlSampleNames){
-
-                    }
-
-                    // STEP5: 如果(cases全部都有，control通通沒有) 計數器+1
-
-                }
-
-                // STEP6: 如果(allele的數量在兩個以上，對每個Allels重複STEP3~5的計算
-                else {
-                    for (int i=0;i<vctx.getNAlleles()-1;i++){
-                        Allele alleles = vctx.getAlternateAllele(i);
-
-                    }
-                }
-
-
-                /* 2016/03/17 hw: 找出所有有rsID的Variants */
-//                printAllAllelesWithRSID(vctx);
-
-                /*以rsIDList搜尋variants*/
-//                String[] TargetRSIDList = {
-//                        "rs587638290",
-//                        "rs587736341",
-//                        "rs534965407",
-//                        "rs9609649",
-//                        "rs5845047",
-//                        "rs80690",
-//                        "rs137506",
-//                        "rs138355780",};
-//                printRSIDEquals(TargetRSIDList,vctx);
-
-                /* 2016/03/24 hw: 找出長度超過100的Allele */
-//                printAltAllelesLongerThen(100,vctx);
-
-                /* 2016/03/31 hw1.v2: 用AFComparision()計算chr22 vcf裡面SAS,EAS的allele frequency都高於total的AF的個數有幾個 */
-//                if(AFComparison(vctx)) count++;
-
-                /* 2016/03/31 hw2.v2: 找出(算出)八個rsID分別對應的Allele frequency */
-//                FindAFsForRSIDs(vctx,TargetRSIDList);
-
-                /* =============================== */
-
-
-
-                /* =============================== */
-            }
-
-
-        }
+        /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少(ans==32)*/
+//        SamplingWithFixedSamples(VcfPath);
 
 
         /* 2016/03/31 hw1.v2: 用AFComparision()計算chr22 vcf裡面SAS,EAS的allele frequency都高於total的AF的個數有幾個 */
@@ -192,33 +47,398 @@ public class VcfReaderYuta {
 //        System.out.println("SAS_AF與EAS_AF皆大於AF的Variants個數：" + CompareAllVariantsAFs(vcfPath)); // UNCOMMENT TO RUN!
 
 
-        System.out.println("Process Finished.");
+
+        /* ========= Read in file ======== */
+        BufferedReader schemaReader = new BufferedReader(new FileReader(VcfPath));
+        VCFCodec vcfCodec = new VCFCodec();
+        String line;
+        String headerLine = "";
+        VariantContext vctx;
+        int NFreqHigher = 0;
+        while ((line = schemaReader.readLine()) != null) {
+            if (line.startsWith("#")) {
+                headerLine = headerLine.concat(line).concat("\n");  //先將metadata lines的部分存到headerLine
+                continue;
+            }
+            VCFHeader head = (VCFHeader)vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
+                    new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
+
+
+            if (!line.startsWith("#")) {        //開始對data lines(每一筆variants)的操作：
+                vctx = vcfCodec.decode(line);
+        /* =============================== */
+        /* ========= play w/ vctx ======== */
+
+
+
+
+                /* To understand VariantContext by printing everything */
+//                PrintvctxProperties(vctx,head);
+
+                /* 2016/03/17 hw: 找出所有有rsID的Variants */
+//                printAllAllelesWithRSID(vctx);
+
+                /* 以rsIDList搜尋variants*/
+//                String[] TargetRSIDList = {
+//                        "rs587638290",
+//                        "rs587736341",
+//                        "rs534965407",
+//                        "rs9609649",
+//                        "rs5845047",
+//                        "rs80690",
+//                        "rs137506",
+//                        "rs138355780",};
+//                printRSIDEquals(TargetRSIDList,vctx);
+
+                /* 2016/03/24 hw: 找出長度超過100的Allele */
+//                printAltAllelesLongerThen(100,vctx);
+
+                /* 2016/03/31 hw1.v2: 用AFComparision()計算chr22 vcf裡面SAS,EAS的allele frequency都高於total的AF的個數有幾個 */
+//                if(AFComparison(vctx)) count++;
+
+                /* 2016/03/31 hw2.v2: 找出(算出)八個rsID分別對應的Allele frequency */
+//                FindAFsForRSIDs(vctx,TargetRSIDList);
+
+        /* =============================== */
+        /* =============================== */
+            }
+        }
+
+
+
+        // timer and finishing messange
+        long totalms = System.currentTimeMillis()-startTimems;
+        int sec = (int) (totalms / 1000) % 60 ;
+        int min = (int) ((totalms / (1000*60)) % 60);
+        int hr   = (int) ((totalms / (1000*60*60)) % 24);
+        System.out.printf("Program Finished. Runtime: %dhr %dmin %dsec (%d ms)\n",hr,min,sec,totalms);
+    }
+
+
+
+
+
+
+
+
+
+    /* 2016/04/14 hw: 隨機取 5 vs 5 的sample set，重複做200次 */
+    public static void SamplingWithNRandomSamples(String VcfPath, int NSampling, int sampleSize) throws IOException{
+
+        // variables declaration
+        int N = NSampling;
+        int caseSize = sampleSize;
+        List<String> allSampleNames = new ArrayList<String>();
+        List<List<String>> target = new LinkedList<List<String>>();
+        int[] matchCount = new int[N];
+        double sumNMatched = 0;
+        long startTimems = System.currentTimeMillis();
+        boolean doneOnce = false;
+
+
+        /* =========讀檔(READ FILE)======== */
+        BufferedReader schemaReader = new BufferedReader(new FileReader(VcfPath));
+        VCFCodec vcfCodec = new VCFCodec();
+        String line;
+        String headerLine = "";
+        VariantContext vctx;
+        while ((line = schemaReader.readLine()) != null) {
+            if (line.startsWith("#")) {
+                headerLine = headerLine.concat(line).concat("\n");  //先將metadata lines的部分存到headerLine
+                continue;
+            }
+            VCFHeader head = (VCFHeader) vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
+                    new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
+
+
+            /* prepare the N random list of sample names */
+            if(!doneOnce){
+                allSampleNames = head.getSampleNamesInOrder();
+                System.out.println("Target sample names");
+                for(int i=0;i<N;i++){
+                    //set the ith row of target to a randomly generated list of sample names
+                    target.add(i,GetRandomSampleNames(allSampleNames,sampleSize));
+                    target.get(i).addAll(sampleSize,GetRandomSampleNames(allSampleNames,sampleSize));
+                    System.out.println("S"+i+": "+target.get(i));
+                }
+                doneOnce=true;
+            }
+
+
+
+            if (!line.startsWith("#")) {        //開始對data lines(每一筆variants)的操作：
+                vctx = vcfCodec.decode(line);
+        /* =============================== */
+
+
+            /* =====操作vctx(play w/ vctx)===== */
+
+
+                if(vctx.getNAlleles()==2) {
+
+                    for (int i = 0; i < N; i++) {
+                        List<String> caseSampleNames = target.get(i).subList(0, sampleSize); // l[0] to l[4] as "case"
+                        List<String> controlSampleNames = target.get(i).subList(sampleSize, sampleSize + caseSize); //l[5] to l[9] as "control
+
+
+                        String ref = vctx.getReference().toString();
+                        String onlyAlt = vctx.getAlternateAllele(0).toString();
+                        int caseCalled = 0, controlCalled = 0;
+
+                        // STEP3: 去算出cases被call出這個allele的數量有多少
+                        for (String caseSampleName : caseSampleNames) {
+                            if ((vctx.getGenotype(caseSampleName).getAllele(0).toString().equals(onlyAlt)) ||
+                                    (vctx.getGenotype(caseSampleName).getAllele(1).toString().equals(onlyAlt)))
+                                caseCalled++;
+                        }
+
+                        // STEP4: 去算出controls被call出這個allele的數量有多少
+                        for (String controlSampleName : controlSampleNames) {
+                            if ((vctx.getGenotype(controlSampleName).getAllele(0).toString().equals(onlyAlt)) ||
+                                    (vctx.getGenotype(controlSampleName).getAllele(1).toString().equals(onlyAlt)))
+                                controlCalled++;
+                        }
+
+                        // STEP5: 如果(cases全部都有，control通通沒有) 計數器+1
+                        if ((caseCalled == caseSampleNames.size()) && (controlCalled == 0)) {
+                            System.out.printf("S%d: %s\t matched criteria.(ref:%s, alt:%s)\n", i, vctx.getID(), ref, onlyAlt);
+                            matchCount[i]++;
+                        }
+                    }
+                }
+
+                // STEP6: 如果(allele的數量在兩個以上，對每個Allels重複STEP3~5的計算
+                else if(vctx.getNAlleles()>2){
+                    for (int i = 0; i < N; i++) {
+                        List<String> caseSampleNames = target.get(i).subList(0, sampleSize); // l[0] to l[4] as "case"
+                        List<String> controlSampleNames = target.get(i).subList(sampleSize, sampleSize + caseSize); //l[5] to l[9] as "control
+
+                        for (int j = 0; j < vctx.getNAlleles() - 1; j++) {
+                            String ref = vctx.getReference().toString();
+                            String ithAlt = vctx.getAlternateAllele(j).toString();
+                            int caseCalled = 0, controlCalled = 0;
+
+                            // case sample中如果有allele符合第i個alt，case sample的計數器++
+                            for (String caseNames : caseSampleNames) {
+                                if ((vctx.getGenotype(caseNames).getAllele(0).toString().equals(ithAlt)) ||
+                                        (vctx.getGenotype(caseNames).getAllele(1).toString().equals(ithAlt)))
+                                    caseCalled++;
+                            }
+
+                            // control sample中如果有allele符合第i個alt，control sample的計數器++
+                            for (String controlNames : controlSampleNames) {
+                                if ((vctx.getGenotype(controlNames).getAllele(0).toString().equals(ithAlt)) ||
+                                        (vctx.getGenotype(controlNames).getAllele(1).toString().equals(ithAlt)))
+                                    controlCalled++;
+                            }
+
+                            // 若 case sample的計數器=5 且 control sample的計數器=0，總計數器++
+                            if ((caseCalled == caseSampleNames.size()) && (controlCalled == 0)) {
+                                System.out.printf("S%d: %s\t matched criteria.(ref:%s, alt:%s) *\n", i, vctx.getID(), ref, ithAlt);
+                                matchCount[i]++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        System.out.printf("\n%d sampling results:\n",N);
+        for(int i=0;i<N;i++){
+            System.out.printf("S%d: %d\n",i,matchCount[i]);
+            sumNMatched+=matchCount[i];
+        }
+
+
+
+
+//        ArrayList<Integer> samplingResult = new ArrayList<Integer>(NSampling);
+//        for(int i=0;i<NSampling;i++){
+//            samplingResult.add(i,SamplingWithRandomSamples(GetRandomSampleNames(AllSampleName,5),GetRandomSampleNames(AllSampleName,5)));
+//        }
+//        System.out.printf("Sampling %d times with exch sample of %d sample",NSampling,sampleSize);
+
+
+        //timer
+        long totalms = System.currentTimeMillis()-startTimems;
+
+
+        System.out.printf("On average %2f cases matched critiria. Runtime: %d ms\n",sumNMatched/N,totalms);
+//        return 0;
+    }
+
+    /*  */
+
+    /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少(ans==32) */
+    public static int SamplingWithFixedSamples(String VcfPath) throws IOException{
+
+        // variables declaration
+        long startTimems = System.currentTimeMillis();
+        List<String> allSampleNames = new ArrayList<String>();
+        List<String> caseSampleNames = new ArrayList<String>();
+        List<String> controlSampleNames = new ArrayList<String>();
+        boolean doneOnce = false;
+        boolean doneOnce2 = false;
+        int NMatchedConditions=0;
+
+        /* =========讀檔(READ FILE)======== */
+        BufferedReader schemaReader = new BufferedReader(new FileReader(VcfPath));
+        VCFCodec vcfCodec = new VCFCodec();
+        String line;
+        String headerLine = "";
+        VariantContext vctx;
+        while ((line = schemaReader.readLine()) != null) {
+            if (line.startsWith("#")) {
+                headerLine = headerLine.concat(line).concat("\n");  //先將metadata lines的部分存到headerLine
+                continue;
+            }
+            VCFHeader head = (VCFHeader) vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
+                    new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
+
+
+            if (!line.startsWith("#")) {        //開始對data lines(每一筆variants)的操作：
+                vctx = vcfCodec.decode(line);
+        /* =============================== */
+
+
+            /* =====操作vctx(play w/ vctx)===== */
+
+                /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少(ans==32)*/
+                // STEP1: 用一個list把 sample ids裝起來，把list的1..10的名字存起來當成case，把list的11..20的名字存起來當成control
+                if (!doneOnce) {
+                    allSampleNames = vctx.getSampleNamesOrderedByName();
+                    for (int i = 0; i < 5; i++) {
+                        caseSampleNames.add(allSampleNames.get(i));
+                    }
+                    for (int i = 5; i < 10; i++) {
+                        controlSampleNames.add(allSampleNames.get(i));
+                    }
+                    doneOnce = true;
+                }
+
+                // [測試用] 輸出各種sample names
+//                if(!doneOnce2){
+//                    System.out.println(allSampleNames.size());
+//                    System.out.println(caseSampleNames);
+//                    System.out.println(controlSampleNames);
+//                    doneOnce2=true;
+//                }
+//                PrintvctxProperties(vctx,head);
+
+
+                // STEP2: 如果allele的數量是一個，抓出那個allele是誰
+                if(vctx.getNAlleles()==2) {
+                    String ref = vctx.getReference().toString();
+                    String onlyAlt = vctx.getAlternateAllele(0).toString();
+                    int caseCalled=0, controlCalled=0;
+
+                    // STEP3: 去算出cases被call出這個allele的數量有多少
+                    for (String caseSampleName:caseSampleNames){
+                        if((vctx.getGenotype(caseSampleName).getAllele(0).toString().equals(onlyAlt))||
+                                (vctx.getGenotype(caseSampleName).getAllele(1).toString().equals(onlyAlt))) caseCalled++;
+                    }
+
+                    // STEP4: 去算出controls被call出這個allele的數量有多少
+                    for (String controlSampleName:controlSampleNames){
+                        if((vctx.getGenotype(controlSampleName).getAllele(0).toString().equals(onlyAlt))||
+                                (vctx.getGenotype(controlSampleName).getAllele(1).toString().equals(onlyAlt))) controlCalled++;
+                    }
+
+                    // STEP5: 如果(cases全部都有，control通通沒有) 計數器+1
+                    if((caseCalled==caseSampleNames.size())&&(controlCalled==0)){
+                        System.out.printf("%s matched search condition.(ref:%s, alt:%s)\n",vctx.getID(),ref,onlyAlt);
+                        NMatchedConditions++;
+                    }
+                }
+
+                // STEP6: 如果(allele的數量在兩個以上，對每個Allels重複STEP3~5的計算
+                else if(vctx.getNAlleles()>2){
+                    for (int i=0;i<vctx.getNAlleles()-1;i++){
+                        String ref = vctx.getReference().toString();
+                        String ithAlt = vctx.getAlternateAllele(i).toString();
+                        int caseCalled=0, controlCalled=0;
+
+                        // case sample中如果有allele符合第i個alt，case sample的計數器++
+                        for(String caseNames:caseSampleNames) {
+                            if((vctx.getGenotype(caseNames).getAllele(0).toString().equals(ithAlt))||
+                                    (vctx.getGenotype(caseNames).getAllele(1).toString().equals(ithAlt))) caseCalled++;
+                        }
+
+                        // control sample中如果有allele符合第i個alt，control sample的計數器++
+                        for(String controlNames:controlSampleNames){
+                            if((vctx.getGenotype(controlNames).getAllele(0).toString().equals(ithAlt))||
+                                    (vctx.getGenotype(controlNames).getAllele(1).toString().equals(ithAlt))) controlCalled++;
+                        }
+
+                        // 若 case sample的計數器=5 且 control sample的計數器=0，總計數器++
+                        if((caseCalled==caseSampleNames.size())&&(controlCalled==0)){
+                            System.out.printf("%s matched search condition.(ref:%s, alt:%s)\n",vctx.getID(),ref,ithAlt);
+                            NMatchedConditions++;
+                        }
+                    }
+                }
+            }
+        }
+        //timer
+        long totalms = System.currentTimeMillis()-startTimems;
+        System.out.printf("%d cases matched critiria. Runtime: %d ms\n",NMatchedConditions,totalms);
+        return 0;
+    }
+
+    /* 2016/04/14 hw: Randomly generate a List of N sample names. (use .tailSet() and .headSet() to get 2 sets for "case" and "control" */
+    public static List<String> GetRandomSampleNames(List<String> AllSampleNames, int N){
+
+        int NSample = AllSampleNames.size()-1;  // 2504 samples in total
+        Random rng = new Random();
+        SortedSet<String> generated = new TreeSet<String>();
+        while (generated.size()<N){
+            Integer next = rng.nextInt(NSample)+1;
+            generated.add(AllSampleNames.get(next));
+        }
+        List<String> l = new ArrayList<String>(generated);
+//        System.out.println("Generated a List of N sample names: "+l);
+        return l;
     }
 
     /*以sout測試各種VariantContext的methods和members*/
     public static void PrintvctxProperties(VariantContext vctx, VCFHeader head){
-        System.out.println(
-                " RsID: \t" + vctx.getID() + "\n"+
+        System.out.println("-----------------------\n"+
+
+                        " RsID: \t" + vctx.getID() + "\n"+  // rs62224611
                         " vctx.toString(): \t" + vctx.toString()+"\n\n"+
+// [VC Unknown @ 22:121210000 Q100.00 of type=SNP alleles=[A*, C, G] attr={AA=.|||, AC=[478, 17], AF=[0.0954473, 0.00339457],
+// AFR_AF=[0.003, 0], AMR_AF=[0.1239, 0], AN=5008, DP=22548, EAS_AF=[0.0744, 0], EUR_AF=[0.0746, 0.003],
+// MULTI_ALLELIC=true, NS=2504, SAS_AF=[0.2434, 0.0143], VT=SNP}
+// GT=GT	1|0	2|0	0|1	0|2	0|1	0|0	0|0	0|0	0|0	0|0	0|0	1|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	1|0	0|0	0|1	0|0	0|0	0|0	0|0	0|0
+// 0|0	0|1	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0
+// 0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|1	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	0|0	1|0	0|0	1|0	0 ...
 
-                        " -ref: \t" + vctx.getReference() +"\n"+
-                        " -alt: \t" + vctx.getAlternateAlleles() +"\n"+
-                        " -first alt: \t" + vctx.getAlternateAlleles().get(0) +"\n"+
-                        " -first alt length: \t" + vctx.getAlternateAlleles().get(0).length() +"\n"+
-                        " -allele Numbers: \t" + vctx.getAlternateAlleles().size()+"\n\n"+
-                        " -allele Numbers': \t" + vctx.getNAlleles()+
+                        " -ref: \t" + vctx.getReference() +"\n"+                                        // A*
+                        " -alt: \t" + vctx.getAlternateAlleles() +"\n"+                                 // [C, G]
+                        " -first alt: \t" + vctx.getAlternateAlleles().get(0) +"\n"+                    // C
+                        " -first alt length: \t" + vctx.getAlternateAlleles().get(0).length() +"\n"+    // 1
+                        " -allele Numbers: \t" + vctx.getAlternateAlleles().size() +"\n"+               // 2
+                        " -allele Numbers': \t" + vctx.getNAlleles()+"\n\n"+                            // 3 (1 ref + 2 alt)
 
-                        " -GT: \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() +"\n"+
-                        " -total samples: \t" + vctx.getNSamples() + "\n"+
-                        " -total chrms(2x total sample): \t" + vctx.getCalledChrCount() + "\n\n"+
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)) +"\n"+                     // [HG00096 C|A*]
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() +"\n"+ // C|A
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getAllele(0) +"\n"+        // C
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getAllele(1) +"\n"+        // A*
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(1)) +"\n"+                     // [HG00097 G|A*]
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() +"\n"+ // C|A
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(1)).getAllele(0) +"\n"+        // G
+                " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(1)).getAllele(1) +"\n\n"+      // A*
 
-                        "Other properties:\n"+
-                        " -getContig(): \t" + vctx.getContig() + "\n"+
-                        " -getSource(): \t" + vctx.getSource() + "\n"+
-                        " -calcVCFGenotypeKeys(): \t" + vctx.calcVCFGenotypeKeys(head)+"\n"+
-                        " -getCommonInfo(): "+vctx.getCommonInfo()+ "\n"
+                        " -total samples: \t" + vctx.getNSamples() + "\n"+                              // 2504
+                        " -total chrms(2x total sample): \t" + vctx.getCalledChrCount() + "\n\n"+       // 5008
 
-                        +"-----------------------\n"
+                "Other properties:\n"+
+                        " -getContig(): \t" + vctx.getContig() + "\n"+                          // 22
+                        " -getSource(): \t" + vctx.getSource() + "\n"+                          // Unknown
+                        " -calcVCFGenotypeKeys(): \t" + vctx.calcVCFGenotypeKeys(head)+"\n"+    // [GT]
+
+                        "-----------------------\n"
         );
     }
 

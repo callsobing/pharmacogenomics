@@ -1,5 +1,6 @@
 package C4lab;
 
+import htsjdk.samtools.util.Histogram;
 import htsjdk.tribble.readers.LineIteratorImpl;
 import htsjdk.tribble.readers.LineReaderUtil;
 import htsjdk.variant.variantcontext.Allele;
@@ -7,10 +8,12 @@ import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFCodec;
 import java.io.*;
 import java.util.*;
+import java.util.function.BooleanSupplier;
 
 
 public class VcfReaderYa
 {
+    final static Integer ITERATIONS = 5000;
     public static List<String> rsIDs = Arrays.asList(
             "rs587638290",
             "rs587736341",
@@ -30,12 +33,10 @@ public class VcfReaderYa
         VariantContext vctx;
         String line;
         String headerLine = "";
-        Set<String> rsIdsAboveAverage = new HashSet<String>();
         BufferedReader schemaReader = new BufferedReader(new FileReader(vcfPath));
-        Integer allelesInAllCasesNoControl = 0;
-        List<String> sampleNames = new ArrayList<String>();
-        List<String> caseSampleName = new ArrayList<String>();
-        List<String> controlSampleName = new ArrayList<String>();
+        List<List<Integer>> caseSampleNames = new ArrayList<List<Integer>>();
+        List<List<Integer>> controlSampleNames = new ArrayList<List<Integer>>();
+        List<Integer> countList = new ArrayList<Integer>();
 
         while ((line = schemaReader.readLine()) != null) {
             if(line.startsWith("#")) {
@@ -50,39 +51,63 @@ public class VcfReaderYa
             vctx = vcfCodec.decode(line);
 
             if(firstContent) {
-                sampleNames = vctx.getSampleNamesOrderedByName();
-                caseSampleName = sampleNames.subList(0, 5);
-                controlSampleName = sampleNames.subList(5, 10);
+                createRandomSampleSets(vctx, caseSampleNames, controlSampleNames, countList);
                 firstContent = false;
             }
 
-            int alleleNumbers = vctx.getAlternateAlleles().size();
-
-            if(alleleNumbers == 1) {
-                Allele allele = vctx.getAlternateAllele(0);
-                if(checkAlleleNotPresentInAllControl(controlSampleName, vctx, allele) &&
-                        checkAllelePresentInAllCase(caseSampleName, vctx, allele)) {
-                    allelesInAllCasesNoControl += 1;
-                    System.out.println("Matched allele id: " + vctx.getID());
-                }
-                continue;
-            }
-
-            for (int i = 0; i < alleleNumbers; i++) {
-                Allele allele = vctx.getAlternateAllele(i);
-                if(checkAlleleNotPresentInAllControl(controlSampleName, vctx, allele) &&
-                        checkAllelePresentInAllCase(caseSampleName, vctx, allele)){
-                    allelesInAllCasesNoControl += 1;
-                    System.out.println("Matched allele id: " + vctx.getID());
+            for(Allele allele: vctx.getAlternateAlleles()) {
+                ArrayList<Boolean> sampleContainsAllele = new ArrayList<Boolean>();
+                for (int k = 0; k < ITERATIONS; k++) {
+                    if (k == 0) {
+                        for (String sample : vctx.getSampleNamesOrderedByName()) {
+                            sampleContainsAllele.add(vctx.getGenotype(sample).countAllele(allele) > 0); // Pre-compute
+                        }
+                    }
+                    if (checkAlleleNotPresentInAllControl(controlSampleNames.get(k), sampleContainsAllele) &&
+                            checkAllelePresentInAllCase(caseSampleNames.get(k), sampleContainsAllele)) {
+                        int kk = countList.get(k);
+                        countList.set(k, kk + 1);
+                    }
                 }
             }
         }
-        System.out.println("######## Allele number with allele presences in all cases but no controls: " + allelesInAllCasesNoControl);
+
+        System.out.println("######## Allele number with allele presences in all cases but no controls:");
+        for(int k = 0; k < ITERATIONS; k++) {
+            System.out.println(countList.get(k));
+        }
     }
 
     public static void vcfDecoder (String headerLine, VCFCodec vcfCodec){
         vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
                 new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
+    }
+
+    public static void createRandomSampleSets (VariantContext vctx, List<List<Integer>> caseSampleNames, List<List<Integer>> controlSampleNames, List<Integer> countList){
+        for(int i = 1; i <= ITERATIONS; i++) {
+            countList.add(i-1, 0);
+            List<Integer> innerCaseIdxList = new ArrayList<Integer>();
+            List<Integer> innerControlIdxList = new ArrayList<Integer>();
+            List<Integer> innerCaseIdx = new ArrayList<Integer>();
+            List<Integer> innerControlIdx = new ArrayList<Integer>();
+            List<String> sampleNames = vctx.getSampleNamesOrderedByName();
+
+            while(innerCaseIdxList.size() < 5) {
+                int random = (int)(Math.random() * sampleNames.size()); // idx from 0 ~ size-1
+                if(innerCaseIdx.contains(random)) continue;
+                innerCaseIdxList.add(random);
+                innerCaseIdx.add(random);
+            }
+            caseSampleNames.add(innerCaseIdxList);
+
+            while(innerControlIdxList.size() < 5) {
+                int random = (int)(Math.random() * sampleNames.size()); // idx from 0 ~ size-1
+                if(innerCaseIdx.contains(random) || innerControlIdx.contains(random)) continue;
+                innerControlIdxList.add(random);
+                innerControlIdx.add(random);
+            }
+            controlSampleNames.add(innerControlIdxList);
+        }
     }
 
     public static boolean checkAfGtAverageSingle (VariantContext vctx){
@@ -97,15 +122,21 @@ public class VcfReaderYa
         float sasAf = Float.parseFloat(((List<String>)vctx.getAttribute("SAS_AF")).get(altAlleleIdx));
         float af = Float.parseFloat(((List<String>)vctx.getAttribute("AF")).get(altAlleleIdx));
         return easAf > af && sasAf > af;
+
     }
 
-    public static boolean checkAlleleNotPresentInAllControl(List<String> controlSamples, VariantContext vctx, Allele allele){
-        return 0 == vctx.getCalledChrCount(allele, new HashSet<String>(controlSamples));
+    public static boolean checkAlleleNotPresentInAllControl(List<Integer> controlSamples, ArrayList<Boolean> sampleContainsAllele){
+        for(Integer sampleIdx: controlSamples){
+            if(sampleContainsAllele.get(sampleIdx)){
+                return false;
+            }
+        }
+        return true;
     }
 
-    public static boolean checkAllelePresentInAllCase(List<String> caseSamples, VariantContext vctx, Allele allele){
-        for(String sample: caseSamples){
-            if(0 == vctx.getGenotype(sample).countAllele(allele)){
+    public static boolean checkAllelePresentInAllCase(List<Integer> caseSamples, ArrayList<Boolean> sampleContainsAllele){
+        for(Integer sampleIdx: caseSamples){
+            if(!sampleContainsAllele.get(sampleIdx)){
                 return false;
             }
         }
