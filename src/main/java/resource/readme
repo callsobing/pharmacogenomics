@@ -17,7 +17,7 @@ final String vcfPath = args[0];
 
 8. 連線進去server 然後直接用jar -cp指定你要執行的class name, 然後後面接著參數args[0],也就是我們的input資料
 (例如: java -cp pharmacogenomics-1.0.0.jar C4lab.VcfReaderYa /home/shared_data/the1000genomes/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf)
-
+h
 9. 請大家在chr22裡面計算以下8個rsID對應到的allele freq是多少
 
 - rs587638290
