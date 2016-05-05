@@ -189,15 +189,19 @@ public class VcfReaderYuta {
                         // STEP3: 去算出cases被call出這個allele的數量有多少
                         for (Integer caseSampleName : caseSampleNames) {
                             if ((vctx.getGenotype(caseSampleName).getAllele(0).toString().equals(onlyAlt)) ||//FIXME
-                                    (vctx.getGenotype(caseSampleName).getAllele(1).toString().equals(onlyAlt)))
+                                    (vctx.getGenotype(caseSampleName).getAllele(1).toString().equals(onlyAlt))){
                                 caseCalled++;
+                            }else break;
                         }
 
                         // STEP4: 去算出controls被call出這個allele的數量有多少
                         for (Integer controlSampleName : controlSampleNames) {
                             if ((vctx.getGenotype(controlSampleName).getAllele(0).toString().equals(onlyAlt)) ||//FIXME
-                                    (vctx.getGenotype(controlSampleName).getAllele(1).toString().equals(onlyAlt)))
+                                    (vctx.getGenotype(controlSampleName).getAllele(1).toString().equals(onlyAlt))){
                                 controlCalled++;
+                            }else if(caseCalled==0){
+                                break;
+                            }
                         }
 
                         // STEP5: 如果(cases全部都有，control通通沒有) 計數器+1
@@ -223,15 +227,19 @@ public class VcfReaderYuta {
                             // case sample中如果有allele符合第i個alt，case sample的計數器++
                             for (Integer caseNames : caseSampleNames) {
                                 if ((vctx.getGenotype(caseNames).getAllele(0).toString().equals(ithAlt)) ||
-                                        (vctx.getGenotype(caseNames).getAllele(1).toString().equals(ithAlt)))
+                                        (vctx.getGenotype(caseNames).getAllele(1).toString().equals(ithAlt))) {
                                     caseCalled++;
+                                }else break;
                             }
 
                             // control sample中如果有allele符合第i個alt，control sample的計數器++
                             for (Integer controlNames : controlSampleNames) {
                                 if ((vctx.getGenotype(controlNames).getAllele(0).toString().equals(ithAlt)) ||
-                                        (vctx.getGenotype(controlNames).getAllele(1).toString().equals(ithAlt)))
+                                        (vctx.getGenotype(controlNames).getAllele(1).toString().equals(ithAlt))) {
                                     controlCalled++;
+                                }else if(caseCalled==0){
+                                    break;
+                                }
                             }
 
                             // 若 case sample的計數器=5 且 control sample的計數器=0，總計數器++
