@@ -7,21 +7,15 @@ import htsjdk.tribble.readers.LineReaderUtil;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFCodec;
+import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.PairFunction;
-import scala.Tuple2;
 
 import java.io.*;
 import java.util.*;
 
 public class VcfReaderYa implements Serializable {
     final static Integer ITERATIONS = 10000;
-    transient JavaSparkContext sc;
-
-    public VcfReaderYa(JavaSparkContext sc) {
-        this.sc = sc;
-    }
 
     public static List<String> rsIDs = Arrays.asList(
             "rs587638290",
@@ -34,8 +28,11 @@ public class VcfReaderYa implements Serializable {
             "rs138355780"
     );
 
-    public void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException {
         final String vcfPath = args[0];
+        SparkConf conf = new SparkConf().setAppName("yat-test");
+        JavaSparkContext sc = new JavaSparkContext(conf);
+
         JavaRDD<String> file = sc.textFile(vcfPath);
         final String VCFHeaderStrings = file
                 .filter(line -> line.startsWith("#"))
@@ -43,14 +40,6 @@ public class VcfReaderYa implements Serializable {
 
         JavaRDD<String> lines = file.filter(line -> !line.startsWith("#"));
 
-
-        VCFCodec vcfCodec = new VCFCodec();
-        boolean firstDecode = true;
-        boolean firstContent = true;
-//        VariantContext vctx;
-//        String line;
-        String headerLine = "";
-        BufferedReader schemaReader = new BufferedReader(new FileReader(vcfPath));
         List<List<Integer>> caseSampleNames = new ArrayList<List<Integer>>();
         List<List<Integer>> controlSampleNames = new ArrayList<List<Integer>>();
         List<Integer> countList = new ArrayList<Integer>();
@@ -72,18 +61,11 @@ public class VcfReaderYa implements Serializable {
 
         List<Integer> tt = vctx.map(new CountGetter(caseSampleNames, controlSampleNames)).reduce(new MergeCounts());
 
-//        System.out.println("######## Allele number with allele presences in all cases but no controls:");
-//        for(int k = 0; k < ITERATIONS; k++) {
-//            System.out.println(countList.get(k));
-//        }
+        System.out.println("######## Allele number with allele presences in all cases but no controls:");
+        for(int k = 0; k < 10; k++) {
+            System.out.println(tt.get(k));
+        }
     }
-
-    public static void vcfDecoder (String headerLine, VCFCodec vcfCodec){
-        vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
-                new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
-    }
-
-
 
     public static void createRandomSampleSets (VariantContext vctx, List<List<Integer>> caseSampleNames, List<List<Integer>> controlSampleNames, List<Integer> countList){
         for(int i = 1; i <= ITERATIONS; i++) {
