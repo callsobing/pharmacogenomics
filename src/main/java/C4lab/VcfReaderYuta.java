@@ -130,7 +130,7 @@ public class VcfReaderYuta {
         final int N = NSampling;
         final int CASESIZE = sampleSize;
         List<String> allSampleNames;
-        List<List<String>> target = new LinkedList<List<String>>();
+        List<List<Integer>> target = new LinkedList<List<Integer>>();
         List<Integer> report = new LinkedList<Integer>();
         int[] matchCount = new int[N];
         double sumNMatched = 0;
@@ -174,32 +174,28 @@ public class VcfReaderYuta {
 
             /* =====操作vctx(play w/ vctx)===== */
 
-                //fixme early out & string compare
+                //fixme early out
                 if(vctx.getNAlleles()==2) {
 
                     for (int i = 0; i < N; i++) {   // do 1,000 times
-                        List<String> caseSampleNames = target.get(i).subList(0, sampleSize); // l[0] to l[4] as "case"
-                        List<String> controlSampleNames = target.get(i).subList(sampleSize, sampleSize + CASESIZE); //l[5] to l[9] as "control
-//
-//  int[] caseSampleNames88 = target.get(i).subList(0, sampleSize).
+                        List<Integer> caseSampleNames = target.get(i).subList(0, sampleSize); // l[0] to l[4] as "case"
+                        List<Integer> controlSampleNames = target.get(i).subList(sampleSize, sampleSize + CASESIZE); //l[5] to l[9] as "control"
 
-
-                        //
 
                         String ref = vctx.getReference().toString();    //
                         String onlyAlt = vctx.getAlternateAllele(0).toString();
                         int caseCalled = 0, controlCalled = 0;
 
                         // STEP3: 去算出cases被call出這個allele的數量有多少
-                        for (String caseSampleName : caseSampleNames) {
-                            if ((vctx.getGenotype(caseSampleName).getAllele(0).toString().equals(onlyAlt)) ||
+                        for (Integer caseSampleName : caseSampleNames) {
+                            if ((vctx.getGenotype(caseSampleName).getAllele(0).toString().equals(onlyAlt)) ||//FIXME
                                     (vctx.getGenotype(caseSampleName).getAllele(1).toString().equals(onlyAlt)))
                                 caseCalled++;
                         }
 
                         // STEP4: 去算出controls被call出這個allele的數量有多少
-                        for (String controlSampleName : controlSampleNames) {
-                            if ((vctx.getGenotype(controlSampleName).getAllele(0).toString().equals(onlyAlt)) ||
+                        for (Integer controlSampleName : controlSampleNames) {
+                            if ((vctx.getGenotype(controlSampleName).getAllele(0).toString().equals(onlyAlt)) ||//FIXME
                                     (vctx.getGenotype(controlSampleName).getAllele(1).toString().equals(onlyAlt)))
                                 controlCalled++;
                         }
@@ -209,14 +205,15 @@ public class VcfReaderYuta {
                             System.out.printf("S%d: %s\t matched criteria.(ref:%s, alt:%s)\n", i, vctx.getID(), ref, onlyAlt);
                             matchCount[i]++;
                         }
+//                        System.out.printf("* Progress: %d/%d\n",i,N);
                     }
                 }
 
                 // STEP6: 如果(allele的數量在兩個以上，對每個Allels重複STEP3~5的計算
                 else if(vctx.getNAlleles()>2){
                     for (int i = 0; i < N; i++) {
-                        List<String> caseSampleNames = target.get(i).subList(0, sampleSize); // l[0] to l[4] as "case"
-                        List<String> controlSampleNames = target.get(i).subList(sampleSize, sampleSize + CASESIZE); //l[5] to l[9] as "control
+                        List<Integer> caseSampleNames = target.get(i).subList(0, sampleSize); // l[0] to l[4] as "case"
+                        List<Integer> controlSampleNames = target.get(i).subList(sampleSize, sampleSize + CASESIZE); //l[5] to l[9] as "control
 
                         for (int j = 0; j < vctx.getNAlleles() - 1; j++) {
                             String ref = vctx.getReference().toString();
@@ -224,14 +221,14 @@ public class VcfReaderYuta {
                             int caseCalled = 0, controlCalled = 0;
 
                             // case sample中如果有allele符合第i個alt，case sample的計數器++
-                            for (String caseNames : caseSampleNames) {
+                            for (Integer caseNames : caseSampleNames) {
                                 if ((vctx.getGenotype(caseNames).getAllele(0).toString().equals(ithAlt)) ||
                                         (vctx.getGenotype(caseNames).getAllele(1).toString().equals(ithAlt)))
                                     caseCalled++;
                             }
 
                             // control sample中如果有allele符合第i個alt，control sample的計數器++
-                            for (String controlNames : controlSampleNames) {
+                            for (Integer controlNames : controlSampleNames) {
                                 if ((vctx.getGenotype(controlNames).getAllele(0).toString().equals(ithAlt)) ||
                                         (vctx.getGenotype(controlNames).getAllele(1).toString().equals(ithAlt)))
                                     controlCalled++;
