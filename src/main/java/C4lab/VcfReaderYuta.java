@@ -12,6 +12,7 @@ import java.util.*;
 
 
 
+
 public class VcfReaderYuta {
 
     /* main class盡量簡化，以方便之後的使用彈性 */
@@ -20,8 +21,11 @@ public class VcfReaderYuta {
         long startTimems = System.currentTimeMillis();
         final String VcfPath = args[0];
 
+        //todo target=15 mins
+        //todo examine w/ fake data or
+        //todo
+        System.out.println(SamplingWithNRandomSamples(VcfPath,1000,5));
 
-        SamplingWithNRandomSamples(VcfPath,1000,5);
 
 
         /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少(ans==32)*/
@@ -119,17 +123,13 @@ public class VcfReaderYuta {
 
 
 
-
-
-
-
     /* 2016/04/14 hw: 隨機取 5 vs 5 的sample set，重複做200次 */
     public static List<Integer> SamplingWithNRandomSamples(String VcfPath, int NSampling, int sampleSize) throws IOException{
 
         // variables declaration
-        int N = NSampling;
-        int caseSize = sampleSize;
-        List<String> allSampleNames = new ArrayList<String>();
+        final int N = NSampling;
+        final int CASESIZE = sampleSize;
+        List<String> allSampleNames;
         List<List<String>> target = new LinkedList<List<String>>();
         List<Integer> report = new LinkedList<Integer>();
         int[] matchCount = new int[N];
@@ -152,15 +152,14 @@ public class VcfReaderYuta {
             VCFHeader head = (VCFHeader) vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
                     new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
 
-
             /* prepare the N random list of sample names */
             if(!doneOnce){
                 allSampleNames = head.getSampleNamesInOrder();
                 System.out.println("Target sample names");
                 for(int i=0;i<N;i++){
                     //set the ith row of target to a randomly generated list of sample names
-                    target.add(i,GetRandomSampleNames(allSampleNames,sampleSize));
-                    target.get(i).addAll(sampleSize,GetRandomSampleNames(allSampleNames,sampleSize));
+                    target.add(i, GetRandomSampleNamesIdxs(allSampleNames,sampleSize));
+                    target.get(i).addAll(sampleSize, GetRandomSampleNamesIdxs(allSampleNames,sampleSize));
                     System.out.println("S"+i+": "+target.get(i));
                 }
                 doneOnce=true;
@@ -175,15 +174,19 @@ public class VcfReaderYuta {
 
             /* =====操作vctx(play w/ vctx)===== */
 
-
+                //fixme early out & string compare
                 if(vctx.getNAlleles()==2) {
 
-                    for (int i = 0; i < N; i++) {
+                    for (int i = 0; i < N; i++) {   // do 1,000 times
                         List<String> caseSampleNames = target.get(i).subList(0, sampleSize); // l[0] to l[4] as "case"
-                        List<String> controlSampleNames = target.get(i).subList(sampleSize, sampleSize + caseSize); //l[5] to l[9] as "control
+                        List<String> controlSampleNames = target.get(i).subList(sampleSize, sampleSize + CASESIZE); //l[5] to l[9] as "control
+//
+//  int[] caseSampleNames88 = target.get(i).subList(0, sampleSize).
 
 
-                        String ref = vctx.getReference().toString();
+                        //
+
+                        String ref = vctx.getReference().toString();    //
                         String onlyAlt = vctx.getAlternateAllele(0).toString();
                         int caseCalled = 0, controlCalled = 0;
 
@@ -213,7 +216,7 @@ public class VcfReaderYuta {
                 else if(vctx.getNAlleles()>2){
                     for (int i = 0; i < N; i++) {
                         List<String> caseSampleNames = target.get(i).subList(0, sampleSize); // l[0] to l[4] as "case"
-                        List<String> controlSampleNames = target.get(i).subList(sampleSize, sampleSize + caseSize); //l[5] to l[9] as "control
+                        List<String> controlSampleNames = target.get(i).subList(sampleSize, sampleSize + CASESIZE); //l[5] to l[9] as "control
 
                         for (int j = 0; j < vctx.getNAlleles() - 1; j++) {
                             String ref = vctx.getReference().toString();
@@ -258,7 +261,7 @@ public class VcfReaderYuta {
 
 //        ArrayList<Integer> samplingResult = new ArrayList<Integer>(NSampling);
 //        for(int i=0;i<NSampling;i++){
-//            samplingResult.add(i,SamplingWithRandomSamples(GetRandomSampleNames(AllSampleName,5),GetRandomSampleNames(AllSampleName,5)));
+//            samplingResult.add(i,SamplingWithRandomSamples(GetRandomSampleNamesIdxs(AllSampleName,5),GetRandomSampleNamesIdxs(AllSampleName,5)));
 //        }
 //        System.out.printf("Sampling %d times with exch sample of %d sample",NSampling,sampleSize);
 
@@ -270,10 +273,6 @@ public class VcfReaderYuta {
         System.out.printf("On average %2f cases matched critiria. Runtime: %d ms\n",sumNMatched/N,totalms);
         return report;
     }
-
-    /* 2016/04/07 hw: plot histogram from an ArrayList */
-
-
 
     /* 2016/04/07 hw: 取s1~s10當作case, s11~s20當作control計算所有case都有出現但是control都沒有出現的variants數量有多少(ans==32) */
     public static int SamplingWithFixedSamples(String VcfPath) throws IOException{
@@ -392,17 +391,18 @@ public class VcfReaderYuta {
     }
 
     /* 2016/04/14 hw: Randomly generate a List of N sample names. (use .tailSet() and .headSet() to get 2 sets for "case" and "control" */
-    public static List<String> GetRandomSampleNames(List<String> AllSampleNames, int N){
+    public static List<Integer> GetRandomSampleNamesIdxs(List<String> AllSampleNames, int N){
 
         int NSample = AllSampleNames.size()-1;  // 2504 samples in total
         Random rng = new Random();
-        SortedSet<String> generated = new TreeSet<String>();
+        HashSet<Integer> generated = new HashSet<Integer>();
         while (generated.size()<N){
             Integer next = rng.nextInt(NSample)+1;
-            generated.add(AllSampleNames.get(next));
+            generated.add(next);
+//            generated.add(AllSampleNames.get(next));
         }
-        List<String> l = new ArrayList<String>(generated);
-//        System.out.println("Generated a List of N sample names: "+l);
+        List<Integer> l = new ArrayList<Integer>(generated);
+        System.out.println("* Generated a List of N sample names: "+l);
         return l;
     }
 
