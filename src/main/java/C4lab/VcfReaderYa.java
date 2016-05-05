@@ -1,19 +1,28 @@
 package C4lab;
 
-import htsjdk.samtools.util.Histogram;
+import function.CountGetter;
+import function.MergeCounts;
 import htsjdk.tribble.readers.LineIteratorImpl;
 import htsjdk.tribble.readers.LineReaderUtil;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFCodec;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.PairFunction;
+import scala.Tuple2;
+
 import java.io.*;
 import java.util.*;
-import java.util.function.BooleanSupplier;
 
+public class VcfReaderYa implements Serializable {
+    final static Integer ITERATIONS = 10000;
+    transient JavaSparkContext sc;
 
-public class VcfReaderYa
-{
-    final static Integer ITERATIONS = 5000;
+    public VcfReaderYa(JavaSparkContext sc) {
+        this.sc = sc;
+    }
+
     public static List<String> rsIDs = Arrays.asList(
             "rs587638290",
             "rs587736341",
@@ -25,63 +34,56 @@ public class VcfReaderYa
             "rs138355780"
     );
 
-    public static void main( String[] args ) throws IOException {
+    public void main(String[] args) throws IOException {
+        final String vcfPath = args[0];
+        JavaRDD<String> file = sc.textFile(vcfPath);
+        final String VCFHeaderStrings = file
+                .filter(line -> line.startsWith("#"))
+                .reduce((s1, s2) -> s1 + "\n" + s2);
+
+        JavaRDD<String> lines = file.filter(line -> !line.startsWith("#"));
+
+
         VCFCodec vcfCodec = new VCFCodec();
-        final String vcfPath = args[0]; //"/Users/yat/vcf/TSC/merged_351_354_356.vcf";
         boolean firstDecode = true;
         boolean firstContent = true;
-        VariantContext vctx;
-        String line;
+//        VariantContext vctx;
+//        String line;
         String headerLine = "";
         BufferedReader schemaReader = new BufferedReader(new FileReader(vcfPath));
         List<List<Integer>> caseSampleNames = new ArrayList<List<Integer>>();
         List<List<Integer>> controlSampleNames = new ArrayList<List<Integer>>();
         List<Integer> countList = new ArrayList<Integer>();
 
-        while ((line = schemaReader.readLine()) != null) {
-            if(line.startsWith("#")) {
-                headerLine = headerLine.concat(line).concat("\n");
-                continue;
-            }
-            if(firstDecode){
-                vcfDecoder(headerLine, vcfCodec);
-                firstDecode = false;
-            }
+        JavaRDD<VariantContext> vctx = lines.mapPartitions(
+                line -> {
+                    final VCFCodec codec = new VCFCodec();
+                    codec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
+                            new StringReader(VCFHeaderStrings), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
 
-            vctx = vcfCodec.decode(line);
+                    List<VariantContext> col = new ArrayList<>();
+                    line.forEachRemaining(s -> col.add(codec.decode(s)));
 
-            if(firstContent) {
-                createRandomSampleSets(vctx, caseSampleNames, controlSampleNames, countList);
-                firstContent = false;
-            }
-
-            for(Allele allele: vctx.getAlternateAlleles()) {
-                ArrayList<Boolean> sampleContainsAllele = new ArrayList<Boolean>();
-                for (int k = 0; k < ITERATIONS; k++) {
-                    if (k == 0) {
-                        for (String sample : vctx.getSampleNamesOrderedByName()) {
-                            sampleContainsAllele.add(vctx.getGenotype(sample).countAllele(allele) > 0); // Pre-compute
-                        }
-                    }
-                    if (checkAlleleNotPresentInAllControl(controlSampleNames.get(k), sampleContainsAllele) &&
-                            checkAllelePresentInAllCase(caseSampleNames.get(k), sampleContainsAllele)) {
-                        int kk = countList.get(k);
-                        countList.set(k, kk + 1);
-                    }
+                    return col;
                 }
-            }
-        }
+        );
 
-        System.out.println("######## Allele number with allele presences in all cases but no controls:");
-        for(int k = 0; k < ITERATIONS; k++) {
-            System.out.println(countList.get(k));
-        }
+        createRandomSampleSets(vctx.first(), caseSampleNames, controlSampleNames, countList);
+
+        List<Integer> tt = vctx.map(new CountGetter(caseSampleNames, controlSampleNames)).reduce(new MergeCounts());
+
+//        System.out.println("######## Allele number with allele presences in all cases but no controls:");
+//        for(int k = 0; k < ITERATIONS; k++) {
+//            System.out.println(countList.get(k));
+//        }
     }
 
     public static void vcfDecoder (String headerLine, VCFCodec vcfCodec){
         vcfCodec.readActualHeader(new LineIteratorImpl(LineReaderUtil.fromStringReader(
                 new StringReader(headerLine), LineReaderUtil.LineReaderOption.SYNCHRONOUS)));
     }
+
+
 
     public static void createRandomSampleSets (VariantContext vctx, List<List<Integer>> caseSampleNames, List<List<Integer>> controlSampleNames, List<Integer> countList){
         for(int i = 1; i <= ITERATIONS; i++) {
@@ -123,24 +125,6 @@ public class VcfReaderYa
         float af = Float.parseFloat(((List<String>)vctx.getAttribute("AF")).get(altAlleleIdx));
         return easAf > af && sasAf > af;
 
-    }
-
-    public static boolean checkAlleleNotPresentInAllControl(List<Integer> controlSamples, ArrayList<Boolean> sampleContainsAllele){
-        for(Integer sampleIdx: controlSamples){
-            if(sampleContainsAllele.get(sampleIdx)){
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public static boolean checkAllelePresentInAllCase(List<Integer> caseSamples, ArrayList<Boolean> sampleContainsAllele){
-        for(Integer sampleIdx: caseSamples){
-            if(!sampleContainsAllele.get(sampleIdx)){
-                return false;
-            }
-        }
-        return true;
     }
 
     public static void calculateAlleleFreq (Integer altAlleleIdx, VariantContext vctx, Set<String> sampleNames, String rsId){
