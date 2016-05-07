@@ -19,7 +19,6 @@ public class CountGetter implements Function<VariantContext, List<Integer>> {
     final static Integer ITERATIONS = 10000;
     List<List<Integer>> caseSampleNames;
     List<List<Integer>> controlSampleNames;
-    List<Integer> countList = new ArrayList<Integer>();
 
     public CountGetter(List<List<Integer>> caseSampleNames, List<List<Integer>> controlSampleNames) {
         this.caseSampleNames = caseSampleNames;
@@ -28,6 +27,7 @@ public class CountGetter implements Function<VariantContext, List<Integer>> {
 
     @Override
     public List<Integer> call(VariantContext vctx) throws Exception {
+        List<Integer> countList = new ArrayList<Integer>(ITERATIONS);
         for(Allele allele: vctx.getAlternateAlleles()) {
             ArrayList<Boolean> sampleContainsAllele = new ArrayList<Boolean>();
             for (int k = 0; k < ITERATIONS; k++) {
@@ -37,8 +37,14 @@ public class CountGetter implements Function<VariantContext, List<Integer>> {
                 }
                 if (checkAlleleNotPresentInAllControl(controlSampleNames.get(k), sampleContainsAllele) &&
                         checkAllelePresentInAllCase(caseSampleNames.get(k), sampleContainsAllele)) {
-                    int kk = countList.get(k);
-                    countList.set(k, kk + 1);
+                    if(countList.size() > k) {
+                        int kk = countList.get(k);
+                        countList.set(k, kk + 1);
+                        continue;
+                    }
+                    countList.add(k, 1);
+                } else if (!(countList.size() > k)) {
+                    countList.add(k, 0);
                 }
             }
         }

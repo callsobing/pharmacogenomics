@@ -18,7 +18,7 @@ public class MergeCounts implements Function2<List<Integer>, List<Integer>, List
         List<Integer> output = new ArrayList<>();
         int i = 0;
         for(Integer int1: integers1){
-            output.set(i, int1+ integers2.get(i));
+            output.add(int1+ integers2.get(i));
             i++;
         }
         return output;
