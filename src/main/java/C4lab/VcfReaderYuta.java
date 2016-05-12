@@ -241,7 +241,7 @@ public class VcfReaderYuta {
                         controlCalled = 0;
                         earlyOut = false;
 
-                        // case sample中如果有allele符合第i個alt，case sample的計數器++
+                        // case sample中如果有allele符合第i個alt，case sample的計數器++ (String comparison)
 //                            for (Integer caseNames : caseSampleNames) {
 //                                if ((vctx.getGenotype(caseNames).getAllele(0).toString().equals(ithAlt)) ||
 //                                        (vctx.getGenotype(caseNames).getAllele(1).toString().equals(ithAlt))) {
@@ -254,6 +254,7 @@ public class VcfReaderYuta {
                                 caseCalled++;
                             }else {
                                 earlyOut=true;
+                                break;
                             }
                         }
 
@@ -264,6 +265,7 @@ public class VcfReaderYuta {
                             if (vctx.getGenotype(controlNames).countAllele(altAllele)>0) {
                                 controlCalled++;
                                 earlyOut=true;
+                                break;
                             }
                         }
 
