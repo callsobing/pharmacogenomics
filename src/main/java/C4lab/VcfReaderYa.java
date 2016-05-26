@@ -37,6 +37,11 @@ public class VcfReaderYa implements Serializable {
         final String VCFHeaderStrings = file
                 .filter(line -> line.startsWith("#"))
                 .reduce((s1, s2) -> s1 + "\n" + s2);
+//
+//        String VCFHeaderStrings = "";
+//        JavaRDD<String> file2 = file
+//                .filter(line -> line.startsWith("#"));
+
 
         JavaRDD<String> lines = file.filter(line -> !line.startsWith("#"));
 
@@ -60,6 +65,7 @@ public class VcfReaderYa implements Serializable {
         createRandomSampleSets(vctx.first(), caseSampleNames, controlSampleNames, countList);
 
         List<Integer> tt = vctx.map(new CountGetter(caseSampleNames, controlSampleNames)).reduce(new MergeCounts());
+//        JavaRDD<List<Integer>> tt = vctx.map(new CountGetter(caseSampleNames, controlSampleNames));
 
         System.out.println("######## Allele number with allele presences in all cases but no controls:");
         for(int k = 0; k < 10; k++) {
