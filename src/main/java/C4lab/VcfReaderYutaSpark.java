@@ -1,7 +1,5 @@
 package C4lab;
 
-import function.CountGetter;
-import function.MergeCounts;
 import htsjdk.tribble.readers.LineIteratorImpl;
 import htsjdk.tribble.readers.LineReaderUtil;
 import htsjdk.variant.variantcontext.Allele;
@@ -56,16 +54,16 @@ public class VcfReaderYutaSpark implements Serializable {
                 }
         );
 
-        List<Float> output =
+        List<Pair> outputAsPairs =
                 vctx.filter(new Function<VariantContext, Boolean>() {
                     @Override
                     public Boolean call(VariantContext innerVctx) throws Exception {
-                        // TODO: 判斷rsID在不在
                         return rsIDs.contains(innerVctx.getID());
                     }
-                }).map(new Function<VariantContext, Float>() {
+                }).map(new Function<VariantContext, Pair>() {
                     @Override
-                    public Float call(VariantContext vctx) throws Exception {
+                    public Pair call(VariantContext vctx) throws Exception {
+                        String rsid = vctx.getID();
                         Float alleleFreq = 0.0f;
                         // TODO:加入你們算AF的邏輯在這裡
                         float total = vctx.getCalledChrCount();    //5008
@@ -77,13 +75,54 @@ public class VcfReaderYutaSpark implements Serializable {
                         }
                         alleleFreq = count/total;
 
-                        return alleleFreq;
+                        return new Pair(rsid,alleleFreq);
                     }
                 }).collect();
 
+
+//        List<Float> output =
+//                vctx.filter(new Function<VariantContext, Boolean>() {
+//                    @Override
+//                    public Boolean call(VariantContext innerVctx) throws Exception {
+//                        // TODO: 判斷rsID在不在
+//                        return rsIDs.contains(innerVctx.getID());
+//                    }
+//                }).map(new Function<VariantContext, Float>() {
+//                    @Override
+//                    public Float call(VariantContext vctx) throws Exception {
+//                        Float alleleFreq = 0.0f;
+//                        // TODO:加入你們算AF的邏輯在這裡
+//                        float total = vctx.getCalledChrCount();    //5008
+//                        float count = 0.0f;
+//                        Allele alt = vctx.getAlternateAllele(0);    // [G]
+//                        Set<String> sampleNames = vctx.getSampleNames();
+//                        for(String name: sampleNames){
+//                            count += vctx.getGenotype(name).countAllele(alt);
+//                        }
+//                        alleleFreq = count/total;
+//
+//                        return alleleFreq;
+//                    }
+//                }).collect();
+
         //TODO:Output結果
-        for(float af:output){
-            System.out.println(af);
+        for(Pair p:outputAsPairs){
+            System.out.printf("%s has AF of %\nf",p.getRSID(),p.getAF());
         }
+    }
+
+    public static class Pair<String,Float> {
+
+        private final String rsid;
+        private final Float af;
+
+        public Pair(String rsid, Float af) {
+            this.rsid = rsid;
+            this.af = af;
+        }
+
+        public String getRSID(){return this.rsid;}
+        public Float getAF(){return this.af;}
+
     }
 }

@@ -84,7 +84,7 @@ public class VcfReaderYuta {
 
 
                 /* 2016/05/26 hw: 手算AF（spark version) */
-                    System.out.println(CalAF(vctx));
+                    printRSIDandAF(vctx);
 
 
                 /* To understand VariantContext by printing everything */
@@ -764,7 +764,7 @@ public class VcfReaderYuta {
         return 1;
     }
 
-    /*(施工中)讀vctx檔，計算該筆variant的allele frequency*/
+    /*)讀vctx檔，計算該筆variant的allele frequency*/
     public static double CalAF(VariantContext vctx){
         double NTotalChr = vctx.getCalledChrCount();   //5008
         int NAllele = vctx.getAlternateAlleles().size();    //若為1便好處理，若非則須
@@ -778,6 +778,23 @@ public class VcfReaderYuta {
 //        System.out.println("REAL AF: "+vctx.getAttributeAsDouble("AF",-8888888888888888888.8));
 //        System.out.println(altCount/NTotalChr);
         return altCount/NTotalChr;
+    }
+
+    public static Pair<String,Float> printRSIDandAF(VariantContext vctx){
+        String rsid = vctx.getID();
+        Float alleleFreq = 0.0f;
+        // TODO:加入你們算AF的邏輯在這裡
+        float total = vctx.getCalledChrCount();    //5008
+        float count = 0.0f;
+        Allele alt = vctx.getAlternateAllele(0);    // [G]
+        Set<String> sampleNames = vctx.getSampleNames();
+        for(String name: sampleNames){
+            count += vctx.getGenotype(name).countAllele(alt);
+        }
+        alleleFreq = count/total;
+        Pair result = new Pair(rsid,alleleFreq);
+        System.out.printf("%s has AF of %f\n",result.getRSID(),result.getAF());
+        return new Pair(rsid,alleleFreq);
     }
 
     /*print出長度超過length的variants*/
@@ -858,6 +875,20 @@ public class VcfReaderYuta {
         return 0;
     }
 
+    public static class Pair<String,Float> {
+
+        private final String rsid;
+        private final Float af;
+
+        public Pair(String rsid, Float af) {
+            this.rsid = rsid;
+            this.af = af;
+        }
+
+        public String getRSID(){return this.rsid;}
+        public Float getAF(){return this.af;}
+
+    }
 
 }
 
