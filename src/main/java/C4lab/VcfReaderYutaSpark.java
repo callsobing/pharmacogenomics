@@ -15,18 +15,27 @@ import java.util.*;
 
 public class VcfReaderYutaSpark implements Serializable {
     public static void main(String[] args) throws IOException {
+
+        final boolean multiAFs = true;
+
+        long startTimems = System.currentTimeMillis();
+        System.out.println("*** PROGRAM START ***");
         final String vcfPath = args[0];
 
         // TODO:你的rsID list
         final List<String> rsIDs = Arrays.asList(
-                "rs1594",
-                "rs2231142",
-                "rs2844665",
-                "rs3094188",
-                "rs3130501",
-                "rs3130931",
-                "rs3815087",
-                "rs9469003"
+
+                "rs1594",       // chr2
+
+                "rs2231142",    // chr4
+
+                "rs2844665",    // chr6
+                "rs3094188",    // chr6
+                "rs3130501",    // chr6
+                "rs3130931",    // chr6
+                "rs3815087",    // chr6
+                "rs9469003"    // chr6
+
         );
 //        String[] AFprintingSequence
 
@@ -54,8 +63,8 @@ public class VcfReaderYutaSpark implements Serializable {
                 }
         );
 
-        List<Pair> outputAsPairs =
-                vctx.filter(new Function<VariantContext, Boolean>() {
+        //List<Pair> outputAsPairs =
+                vctx.filter(new Function<VariantContext, Boolean>() {   /* 問題：為何是 Function<VariantContext, Boolean>() */
                     @Override
                     public Boolean call(VariantContext innerVctx) throws Exception {
                         return rsIDs.contains(innerVctx.getID());
@@ -64,20 +73,24 @@ public class VcfReaderYutaSpark implements Serializable {
                     @Override
                     public Pair call(VariantContext vctx) throws Exception {
                         String rsid = vctx.getID();
-                        Float alleleFreq = 0.0f;
-                        // TODO:加入你們算AF的邏輯在這裡
-                        float total = vctx.getCalledChrCount();    //5008
-                        float count = 0.0f;
-                        Allele alt = vctx.getAlternateAllele(0);    // [G]
-                        Set<String> sampleNames = vctx.getSampleNames();
-                        for(String name: sampleNames){
-                            count += vctx.getGenotype(name).countAllele(alt);
-                        }
-                        alleleFreq = count/total;
+                        Double alleleFreq = vctx.getAttributeAsDouble("AF", -999.0);
+
+
+                        //手算AF：
+//                        float total = vctx.getCalledChrCount();    //5008
+//                        float count = 0.0f;
+//                        Allele alt = vctx.getAlternateAllele(0);    // [G]
+//                        Set<String> sampleNames = vctx.getSampleNames();
+//                        for(String name: sampleNames){
+//                            count += vctx.getGenotype(name).countAllele(alt);
+//                        }
+//                        alleleFreq = count/total;
+
+                        System.out.printf("＊%s has AF of %\nf",rsid,alleleFreq);
 
                         return new Pair(rsid,alleleFreq);
                     }
-                }).collect();
+                }).coalesce(1).saveAsTextFile("/home/c4lab/yuta/result.txt");//.collect();
 
 
 //        List<Float> output =
@@ -106,9 +119,18 @@ public class VcfReaderYutaSpark implements Serializable {
 //                }).collect();
 
         //TODO:Output結果
-        for(Pair p:outputAsPairs){
-            System.out.printf("%s has AF of %\nf",p.getRSID(),p.getAF());
-        }
+//        for(Pair p:outputAsPairs){
+//            System.out.printf("%s has AF of %\nf",p.getRSID(),p.getAF());
+//        }
+
+        // timer and finishing messange
+
+        long totalms = System.currentTimeMillis()-startTimems;
+        int sec = (int) (totalms / 1000) % 60 ;
+        int min = (int) ((totalms / (1000*60)) % 60);
+        int hr   = (int) ((totalms / (1000*60*60)) % 24);
+        System.out.printf("Program Finished. Runtime: %dhr %dmin %dsec (%d ms)\n",hr,min,sec,totalms);
+
     }
 
     public static class Pair<String,Float> {
