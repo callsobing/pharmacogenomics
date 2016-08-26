@@ -28,6 +28,8 @@ public class VcfReaderYutaSpark implements Serializable {
                 "rs1594",       // chr2
 
                 "rs2231142",    // chr4
+//                $ grep rs2231142 clinvar.vcf
+//                4	89052323	rs2231142	G	T	.	.	RS=2231142;RSPOS=89052323;RV;dbSNPBuildID=98;SSR=0;SAO=1;VP=0x050378000a0515053f130100;GENEINFO=ABCG2:9429;WGT=1;VC=SNV;PM;TPA;PMC;S3D;SLO;NSM;REF;ASP;VLD;G5;HD;GNO;KGPhase1;KGPhase3;LSD;MTP;OM;CLNALLE=1;CLNHGVS=NC_000004.11:g.89052323G>T;CLNSRC=OMIM_Allelic_Variant|PharmGKB_Clinical_Annotation|PharmGKB;CLNORIGIN=1;CLNSRCID=603756.0007|1154221922|1154221922;CLNSIG=255|255|6;CLNDSDB=MedGen:OMIM|MedGen:OMIM|MedGen;CLNDSDBID=C1841837:138900|C3280986:614490|CN236578;CLNDBN=Uric_acid_concentration\x2c_serum\x2c_quantitative_trait_locus_1|Blood_group\x2c_Junior_system|rosuvastatin_response_-_Efficacy;CLNREVSTAT=no_criteria|no_criteria|exp;CLNACC=RCV000023341.2|RCV000023342.2|RCV000211355.1;CAF=0.8806,0.1194;COMMON=1
 
                 "rs2844665",    // chr6
                 "rs3094188",    // chr6
@@ -63,20 +65,21 @@ public class VcfReaderYutaSpark implements Serializable {
                 }
         );
 
-        //List<Pair> outputAsPairs =
-                vctx.filter(new Function<VariantContext, Boolean>() {   /* 問題：為何是 Function<VariantContext, Boolean>() */
-                    @Override
-                    public Boolean call(VariantContext innerVctx) throws Exception {
-                        return rsIDs.contains(innerVctx.getID());
-                    }
-                }).map(new Function<VariantContext, Pair>() {
-                    @Override
-                    public Pair call(VariantContext vctx) throws Exception {
-                        String rsid = vctx.getID();
-                        Double alleleFreq = vctx.getAttributeAsDouble("AF", -999.0);
+
+        /* 手算AF並存檔 */
+        vctx.filter(new Function<VariantContext, Boolean>() {   /* 問題：為何是 Function<VariantContext, Boolean>() */
+            @Override
+            public Boolean call(VariantContext innerVctx) throws Exception {
+                return rsIDs.contains(innerVctx.getID());
+            }
+        }).map(new Function<VariantContext, Pair>() {
+            @Override
+            public Pair call(VariantContext vctx) throws Exception {
+                String rsid = vctx.getID();
+                Double alleleFreq = vctx.getAttributeAsDouble("AF", -999.0);
 
 
-                        //手算AF：
+                //手算AF：
 //                        float total = vctx.getCalledChrCount();    //5008
 //                        float count = 0.0f;
 //                        Allele alt = vctx.getAlternateAllele(0);    // [G]
@@ -86,35 +89,51 @@ public class VcfReaderYutaSpark implements Serializable {
 //                        }
 //                        alleleFreq = count/total;
 
-                        System.out.printf("＊%s has AF of %\nf",rsid,alleleFreq);
+                System.out.printf("*** %s has AF of %\nf",rsid,alleleFreq);
+
+                return new Pair(rsid,alleleFreq);
+            }
+        }).coalesce(1).saveAsTextFile("/home/c4lab/yuta/result.txt");
+
+
+        /* List<Pair> */
+        List<Pair> rsid_AF =
+                vctx.filter(new Function<VariantContext, Boolean>() {
+                    @Override
+                    public Boolean call(VariantContext innerVctx) throws Exception {
+                        // TODO: 判斷rsID在不在
+                        return rsIDs.contains(innerVctx.getID());
+                    }
+                }).map(new Function<VariantContext, Pair>() {
+                    @Override
+                    public Pair call(VariantContext vctx) throws Exception {
+
+                        String rsid = vctx.getID();
+                        Double alleleFreq = vctx.getAttributeAsDouble("AF", -999.0);
+                        System.out.printf("*** %s has AF of %\nf",rsid,alleleFreq);
 
                         return new Pair(rsid,alleleFreq);
                     }
-                }).coalesce(1).saveAsTextFile("/home/c4lab/yuta/result.txt");//.collect();
+                }).collect();
 
 
-//        List<Float> output =
+        /* List<Pair> */
+//        List<List<Pair>> rsid_AFs =
 //                vctx.filter(new Function<VariantContext, Boolean>() {
 //                    @Override
 //                    public Boolean call(VariantContext innerVctx) throws Exception {
 //                        // TODO: 判斷rsID在不在
 //                        return rsIDs.contains(innerVctx.getID());
 //                    }
-//                }).map(new Function<VariantContext, Float>() {
+//                }).map(new Function<VariantContext, List<Pair>>() {
 //                    @Override
-//                    public Float call(VariantContext vctx) throws Exception {
-//                        Float alleleFreq = 0.0f;
-//                        // TODO:加入你們算AF的邏輯在這裡
-//                        float total = vctx.getCalledChrCount();    //5008
-//                        float count = 0.0f;
-//                        Allele alt = vctx.getAlternateAllele(0);    // [G]
-//                        Set<String> sampleNames = vctx.getSampleNames();
-//                        for(String name: sampleNames){
-//                            count += vctx.getGenotype(name).countAllele(alt);
-//                        }
-//                        alleleFreq = count/total;
+//                    public List<Pair> call(VariantContext vctx) throws Exception {
 //
-//                        return alleleFreq;
+//                        List<String> rsid_AFtype = vctx.getID().concat(vctx.getAttributeAsString());
+//                        Double alleleFreq = vctx.getAttributeAsDouble("AF", -999.0);
+//                        System.out.printf("*** %s has AF of %\nf",rsid,alleleFreq);
+//
+//                        return new Pair(rsid,alleleFreq);
 //                    }
 //                }).collect();
 
