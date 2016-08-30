@@ -3,30 +3,50 @@ import htsjdk.tribble.readers.LineIteratorImpl;
 import htsjdk.tribble.readers.LineReaderUtil;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
-import htsjdk.variant.variantcontext.writer.BCF2FieldEncoder;
 import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFHeader;
 
-import javax.print.attribute.standard.MediaSize;
 import java.io.*;
 import java.util.*;
 
+import org.apache.commons.lang3.EnumUtils;
+
 public class VcfReaderYuta {
+
+    // rsIDs with Level of Evidence 2A, obtain with:
+    // $ awk '$2=="2A" {printf "\"%s\",", $1}' SCV.withrs.tsv
+    enum rsID {
+        rs1042713,rs1045642,rs1057910,rs113993959,rs121434568,rs121434569,
+        rs12248560,rs145489027,rs1695,rs17244841,rs17708472,rs1799752,rs1799978,
+        rs1800566,rs1801131,rs1801133,rs2032582,rs2108622, rs2279343,rs2279345,
+        rs2297595,rs2359612,rs264631,rs264651,rs2740574,rs28371686,rs28399499,
+        rs2884737,rs3745274,rs3892097,rs4148323,rs4149015,rs4149056,rs4244285,
+        rs4680,rs4917639,rs56165452,rs6025,rs61742245,rs7294,rs7412,rs75039782,
+        rs77010898,rs776746,rs7900194,rs8050894,rs8175347,rs9923231,rs9934438
+
+        ,rs3883917   //TODO remove tester:  rs3883917       C       T      ... 1/1*2 ...
+        ,rs371543232 //TODO remove tester:  rs371543232     A       G      ... 0/1*1 ... 1/1*11 ...
+        ,rs370482130 //TODO remove tester:  rs370482130     T       C/A    ... 0/1*3 ... 2/2*3 ... 1/1*
+    }
 
     public static void main(String[] args) throws IOException {
 
         long startTimems = System.currentTimeMillis();
         final String VcfPath = args[0];
 
+        // rsIDs with Level of Evidence 2A, obtain with:
         // $ awk '$2=="2A" {printf "\"%s\",", $1}' SCV.withrs.tsv
-        final String[] rsID2A = {
+        List<String> rsID2Alist = Arrays.asList(
                 "rs1042713","rs1045642","rs1057910","rs113993959","rs121434568","rs121434569",
                 "rs12248560","rs145489027","rs1695","rs17244841","rs17708472","rs1799752","rs1799978",
                 "rs1800566","rs1801131","rs1801133","rs2032582","rs2108622","rs2279343","rs2279345",
                 "rs2297595","rs2359612","rs264631","rs264651","rs2740574","rs28371686","rs28399499",
                 "rs2884737","rs3745274","rs3892097","rs4148323","rs4149015","rs4149056","rs4244285",
                 "rs4680","rs4917639","rs56165452","rs6025","rs61742245","rs7294","rs7412","rs75039782",
-                "rs77010898","rs776746","rs7900194","rs8050894","rs8175347","rs9923231","rs9934438"};
+                "rs77010898","rs776746","rs7900194","rs8050894","rs8175347","rs9923231","rs9934438");
+
+        EnumMap<rsID,Double[]> rsID_AFs = new EnumMap<>(rsID.class);
+
 
         /* 2016/03/31 hw2: 找出(算出)八個rsID分別對應的Allele frequency */
 //        System.out.println("\nTask:找出(算出)TargetRSIDList中每個rsID對應的Allele frequency...(please wait)");
@@ -44,6 +64,7 @@ public class VcfReaderYuta {
             String line;
             String headerLine = "";
             VariantContext vctx;
+        System.out.println("rsID\tfreq(1/1)\tfreq(0/1)\tfreq(0/0)");
             while ((line = schemaReader.readLine()) != null) {
                 if (line.startsWith("#")) {
                     headerLine = headerLine.concat(line).concat("\n");
@@ -56,13 +77,35 @@ public class VcfReaderYuta {
                 if (!line.startsWith("#")) {
                     vctx = vcfCodec.decode(line);
 
+                    // STEP 1: skip those without rsID
+                    if(vctx.emptyID()) continue;
+
+                    // STEP 2 (version1): if rsID matches, do STEP 3
+                    if(EnumUtils.isValidEnum(rsID.class,vctx.getID())){
+                        System.out.print(vctx.getID());
+
+                        // STEP 3: calculate phenotype frequencies for this vctx
+                        Double[] f = getPhenotypeFreqs(vctx);
+                        System.out.println("\t"+f[0]+ "\t"+f[1]+"\t"+f[2]);
+                    }
+
+                    // STEP 2 (version 2)
+//                    if(rsID2Alist.contains(vctx.getContig())){
+//                        System.out.println("FOUND" + vctx.getID());
+//
+//                          // STEP 3
+////                        System.out.println(++i);
+////                        TODO: calPhenotypeFreqs
+//                    }
+
+
 
 
                 /* 2016/05/26 hw: 手算AF（spark version) */
-
-                    if(vctx.getAlternateAlleles().size()==1){
-                        rsID_AF(vctx, true);
-                    }
+//
+//                    if(vctx.getAlternateAlleles().size()==1){
+//                        rsID_AF(vctx, true);
+//                    }
 //                    else {
 //                        int NAlt = vctx.getAlternateAlleles().size();   // usually 2 or 3
 //                        String rsid = vctx.getID();
@@ -75,18 +118,6 @@ public class VcfReaderYuta {
 
                 /* 2016/03/17 hw: 找出所有有rsID的Variants */
 //                printAllAllelesWithRSID(vctx);
-
-                /* 以rsIDList搜尋variants*/
-//                String[] TargetRSIDList = {
-//                        "rs587638290",
-//                        "rs587736341",
-//                        "rs534965407",
-//                        "rs9609649",
-//                        "rs5845047",
-//                        "rs80690",
-//                        "rs137506",
-//                        "rs138355780",};
-//                printRSIDEquals(TargetRSIDList,vctx);
 
 
                 }
@@ -102,6 +133,39 @@ public class VcfReaderYuta {
         int hr   = (int) ((totalms / (1000*60*60)) % 24);
         System.out.printf("Finished. Runtime: %dhr %dmin %dsec (%d ms)\n",hr,min,sec,totalms);
     }
+
+
+    /* vctx -> phenotype frequencies:{freq(1/1), freq(1/0||0/1), freq(0/0||./.)} */
+    public static Double[] getPhenotypeFreqs(VariantContext vctx){
+
+        int totalChr = vctx.getNSamples();  //496
+        int homCount = vctx.getHomVarCount();
+        int hetCount = vctx.getHetCount();
+
+        // counting by hand
+//        int homCount = 0, hetCount = 0;
+//        if(vctx.getAlternateAlleles().size()==1){       //若為1便好處理，若非則須
+//
+//           for(Genotype gt:vctx.getGenotypesOrderedByName()) {
+//               if(gt.isCalled()){
+//
+//                   if(gt.isHom()) homCount++;
+//                   if(gt.isHet()) hetCount++;
+//
+//               }else continue;
+//           }
+//
+//            System.out.println("\thomCount="+homCount+"\thetCount="+hetCount+"\ttotalChr="+totalChr);
+//            System.out.println("getHetCount="+vctx.getHetCount()+
+//                    "\tgetHomRefCount="+vctx.getHomRefCount()+
+//                    "\tgetHomVarCount="+vctx.getHomVarCount()+
+//                    "\tgetMixedCount="+vctx.getMixedCount());
+//
+//        }else System.out.println("...haven't dealt with multi alt cases :P");
+
+        return new Double[]{homCount/(double)totalChr, hetCount/(double)totalChr, ((totalChr-homCount)-hetCount)/(double)totalChr};
+    }
+
 
 
     /* It takes a list of integer and plot accumulate the elements to plot histogram */
@@ -139,12 +203,10 @@ public class VcfReaderYuta {
         //TODO avoid redundant variables declaration
 
         // variables declaration
-        final int N = NSampling;
-        final int CASESIZE = sampleSize;
         List<String> allSampleNames;
         List<List<Integer>> target = new ArrayList<>();
         List<Integer> report = new ArrayList<>();
-        int[] matchCount = new int[N];
+        int[] matchCount = new int[NSampling];
         double sumNMatched = 0;
         long startTime = System.currentTimeMillis();
         boolean doneOnce = false;
@@ -176,7 +238,7 @@ public class VcfReaderYuta {
             if(!doneOnce){
                 allSampleNames = head.getSampleNamesInOrder();
                 System.out.println("Target sample names");
-                for(int i=0;i<N;i++){
+                for(int i = 0; i< NSampling; i++){
                     //set the ith row of target to a randomly generated list of sample names
                     target.add(i, GetRandomSampleNamesIdxs(allSampleNames,sampleSize));
                     target.get(i).addAll(sampleSize, GetRandomSampleNamesIdxs(allSampleNames,sampleSize));
@@ -235,9 +297,9 @@ public class VcfReaderYuta {
 
                 // STEP6: 如果(allele的數量在兩個以上，對每個Allels重複STEP3~5的計算
 //                else if(vctx.getNAlleles()>2){
-                for (int i = 0; i < N; i++) {
+                for (int i = 0; i < NSampling; i++) {
                     caseSampleNames = target.get(i).subList(0, sampleSize); // l[0] to l[4] as "case"
-                    controlSampleNames = target.get(i).subList(sampleSize, sampleSize + CASESIZE); //l[5] to l[9] as "control
+                    controlSampleNames = target.get(i).subList(sampleSize, sampleSize + sampleSize); //l[5] to l[9] as "control
 
                     for (int j = 0; j < vctx.getNAlleles() - 1; j++) {
                         refAllele = vctx.getReference();
@@ -288,8 +350,8 @@ public class VcfReaderYuta {
         }
 
 
-        System.out.printf("\n%d sampling results:\n",N);
-        for(int i=0;i<N;i++){
+        System.out.printf("\n%d sampling results:\n", NSampling);
+        for(int i = 0; i< NSampling; i++){
             System.out.printf("S%d: %d\n",i,matchCount[i]);
             report.add(matchCount[i]);
             sumNMatched+=matchCount[i];
@@ -309,7 +371,7 @@ public class VcfReaderYuta {
         long totalms = System.currentTimeMillis()-startTime;
 
 
-        System.out.printf("On average %2f cases matched critiria. Runtime: %d ms\n",sumNMatched/N,totalms);
+        System.out.printf("On average %2f cases matched critiria. Runtime: %d ms\n",sumNMatched/ NSampling,totalms);
         return report;
     }
 
@@ -318,9 +380,9 @@ public class VcfReaderYuta {
 
         // variables declaration
         long startTimems = System.currentTimeMillis();
-        List<String> allSampleNames = new ArrayList<String>();
-        List<String> caseSampleNames = new ArrayList<String>();
-        List<String> controlSampleNames = new ArrayList<String>();
+        List<String> allSampleNames = new ArrayList<>();
+        List<String> caseSampleNames = new ArrayList<>();
+        List<String> controlSampleNames = new ArrayList<>();
         boolean doneOnce = false;
         boolean doneOnce2 = false;
         int NMatchedConditions=0;
@@ -434,13 +496,13 @@ public class VcfReaderYuta {
 
         int NSample = AllSampleNames.size()-1;  // 2504 samples in total
         Random rng = new Random();
-        HashSet<Integer> generated = new HashSet<Integer>();
+        HashSet<Integer> generated = new HashSet<>();
         while (generated.size()<N){
             Integer next = rng.nextInt(NSample)+1;
             generated.add(next);
 //            generated.add(AllSampleNames.get(next));
         }
-        List<Integer> l = new ArrayList<Integer>(generated);
+        List<Integer> l = new ArrayList<>(generated);
         System.out.println("* Generated a List of N sample names: "+l);
         return l;
     }
@@ -536,9 +598,9 @@ public class VcfReaderYuta {
 
                     /* [狀況II] 若AF的值有逗號，代表有多個alt（因此有多個allele freq），在此以ArrayList的forEach處理 */
                     else if (vctx.getAttributeAsString("AF", "-1.0").contains(",")) {
-                        ArrayList<String> AFlist = (ArrayList) vctx.getAttribute("AF", "EMPTY");
-                        ArrayList<String> SAS_AFlist = (ArrayList) vctx.getAttribute("SAS_AF", "EMPTY");
-                        ArrayList<String> EAS_AFlist = (ArrayList) vctx.getAttribute("EAS_AF", "EMPTY");
+                        ArrayList<String> AFlist = (ArrayList<String>) vctx.getAttribute("AF", "EMPTY");
+                        ArrayList<String> SAS_AFlist = (ArrayList<String>) vctx.getAttribute("SAS_AF", "EMPTY");
+                        ArrayList<String> EAS_AFlist = (ArrayList<String>) vctx.getAttribute("EAS_AF", "EMPTY");
                         for (int i = 0; i < AFlist.size(); i++) {
                             boolean FreqHigher = ((Double.parseDouble(SAS_AFlist.get(i)) > Double.parseDouble(AFlist.get(i)))
                                     && (Double.parseDouble(EAS_AFlist.get(i)) > Double.parseDouble(AFlist.get(i))));
@@ -564,9 +626,9 @@ public class VcfReaderYuta {
                 if(vctx.getID().contains(";")){
                     String[] IDs = vctx.getID().split(";");
                     int N = IDs.length;
-                    ArrayList<String> AFlist = (ArrayList)vctx.getAttribute("AF","EMPTY");
-                    ArrayList<String> SAS_AFlist = (ArrayList)vctx.getAttribute("SAS_AF","EMPTY");
-                    ArrayList<String> EAS_AFlist = (ArrayList)vctx.getAttribute("EAS_AF","EMPTY");
+                    ArrayList<String> AFlist = (ArrayList<String>)vctx.getAttribute("AF","EMPTY");
+                    ArrayList<String> SAS_AFlist = (ArrayList<String>)vctx.getAttribute("SAS_AF","EMPTY");
+                    ArrayList<String> EAS_AFlist = (ArrayList<String>)vctx.getAttribute("EAS_AF","EMPTY");
                     for (int i=0; i<AFlist.size(); i++) {
                         boolean FreqHigher = ((Double.parseDouble(SAS_AFlist.get(i)) > Double.parseDouble(AFlist.get(i)))
                                 && (Double.parseDouble(EAS_AFlist.get(i)) > Double.parseDouble(AFlist.get(i))));
@@ -617,9 +679,9 @@ public class VcfReaderYuta {
 
                     /* [狀況II] 若AF的值有逗號，代表有多個alt（因此有多個allele freq），在此以ArrayList的forEach處理 */
             else if (vctx.getAttributeAsString("AF", "-1.0").contains(",")) {
-                ArrayList<String> AFlist = (ArrayList) vctx.getAttribute("AF", "EMPTY");
-                ArrayList<String> SAS_AFlist = (ArrayList) vctx.getAttribute("SAS_AF", "EMPTY");
-                ArrayList<String> EAS_AFlist = (ArrayList) vctx.getAttribute("EAS_AF", "EMPTY");
+                ArrayList<String> AFlist = (ArrayList<String>) vctx.getAttribute("AF", "EMPTY");
+                ArrayList<String> SAS_AFlist = (ArrayList<String>) vctx.getAttribute("SAS_AF", "EMPTY");
+                ArrayList<String> EAS_AFlist = (ArrayList<String>) vctx.getAttribute("EAS_AF", "EMPTY");
                 for (int i = 0; i < AFlist.size(); i++) {
                     boolean FreqHigher = ((Double.parseDouble(SAS_AFlist.get(i)) > Double.parseDouble(AFlist.get(i)))
                             && (Double.parseDouble(EAS_AFlist.get(i)) > Double.parseDouble(AFlist.get(i))));
@@ -645,9 +707,9 @@ public class VcfReaderYuta {
         if(vctx.getID().contains(";")){
             String[] IDs = vctx.getID().split(";");
             int N = IDs.length;
-            ArrayList<String> AFlist = (ArrayList)vctx.getAttribute("AF","EMPTY");
-            ArrayList<String> SAS_AFlist = (ArrayList)vctx.getAttribute("SAS_AF","EMPTY");
-            ArrayList<String> EAS_AFlist = (ArrayList)vctx.getAttribute("EAS_AF","EMPTY");
+            ArrayList<String> AFlist = (ArrayList<String>)vctx.getAttribute("AF","EMPTY");
+            ArrayList<String> SAS_AFlist = (ArrayList<String>)vctx.getAttribute("SAS_AF","EMPTY");
+            ArrayList<String> EAS_AFlist = (ArrayList<String>)vctx.getAttribute("EAS_AF","EMPTY");
             for (int i=0; i<AFlist.size(); i++) {
                 boolean FreqHigher = ((Double.parseDouble(SAS_AFlist.get(i)) > Double.parseDouble(AFlist.get(i)))
                         && (Double.parseDouble(EAS_AFlist.get(i)) > Double.parseDouble(AFlist.get(i))));
@@ -674,11 +736,11 @@ public class VcfReaderYuta {
         int N = TargetRSIDList.length;
 
         if(TargetRSIDList.length==0){System.out.println("Empty rsIDs target list!");}
-        for (int i=0;i<N;i++){
-            if (vctx.getID().equals(TargetRSIDList[i])){
+        for (String aTargetRSIDList : TargetRSIDList) {
+            if (vctx.getID().equals(aTargetRSIDList)) {
                 /* 手算Allele frequency卡關中QQ，計算AF先用.getAttribute */
-                double AF = vctx.getAttributeAsDouble("AF",-100.0);
-                System.out.println("AF of "+TargetRSIDList[i]+": "+AF);
+                double AF = vctx.getAttributeAsDouble("AF", -100.0);
+                System.out.println("AF of " + aTargetRSIDList + ": " + AF);
                 return AF;
             }
         }
@@ -738,7 +800,8 @@ public class VcfReaderYuta {
 
     /*)讀vctx檔，計算該筆variant的allele frequency*/
     public static double CalAF(VariantContext vctx){
-        double NTotalChr = vctx.getCalledChrCount();   //5008
+        double TotalChr = vctx.getCalledChrCount();   //5008
+
         int NAllele = vctx.getAlternateAlleles().size();    //若為1便好處理，若非則須
         double altCount = 0;   //累加alt的數量（即後面那一堆0|0中的非0有幾個）
         Allele alt = vctx.getAlternateAllele(0);
@@ -749,7 +812,7 @@ public class VcfReaderYuta {
         }
 //        System.out.println("REAL AF: "+vctx.getAttributeAsDouble("AF",-8888888888888888888.8));
 //        System.out.println(altCount/NTotalChr);
-        return altCount/NTotalChr;
+        return altCount/TotalChr;
     }
 
 //    public List<Pair> call(VariantContext vctx) throws Exception {
@@ -776,7 +839,7 @@ public class VcfReaderYuta {
 //            count += vctx.getGenotype(name).countAllele(alt);
 //        }
 //        alleleFreq = count/total;
-        Pair result = new Pair(rsid,alleleFreq);
+        Pair<String, Double> result = new Pair<String, Double>(rsid,alleleFreq);
         if(doPrint) System.out.printf("%s has AF of %f\n",result.getRSID(),result.getAF());
         return result;
 
@@ -790,7 +853,7 @@ public class VcfReaderYuta {
         for(int i=0;i<NAlt;i++) {
             Allele allele = vctx.getAlternateAllele(i);
             Double alleleFreq = ((Double) ((ArrayList) vctx.getAttribute("AF")).get(i));
-            Pair result = new Pair(rsid, alleleFreq);
+            Pair<String, Double> result = new Pair<String, Double>(rsid, alleleFreq);
             if (doPrint) System.out.printf("%s (%s) has AF of %f\n", result.getRSID(), allele.toString(), result.getAF());
             results.add(i,result);
         }
@@ -827,7 +890,7 @@ public class VcfReaderYuta {
 
     /*print出所有擁有rsID的variants*/
     public static void printAllAllelesWithRSID(VariantContext vctx){
-        if (!(vctx.getID() == ".")) {
+        if (!(Objects.equals(vctx.getID(), "."))) {
             System.out.println(
                     "|rsID: " + vctx.getID()
                             + "| |ref: " + vctx.getReference()
