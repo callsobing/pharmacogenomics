@@ -8,14 +8,17 @@ import htsjdk.variant.vcf.VCFHeader;
 
 import java.io.*;
 import java.util.*;
+import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.lang3.EnumUtils;
 
 public class VcfReaderYuta {
 
-    // rsIDs with Level of Evidence 2A, obtain with:
-    // $ awk '$2=="2A" {printf "\"%s\",", $1}' SCV.withrs.tsv
+    private static final String FILETYPE = "gz";
+
     enum rsID {
+        // rsIDs with Level of Evidence 2A, obtain with:
+        // $ awk '$2=="2A" {printf "\"%s\",", $1}' SCV.withrs.tsv
         rs1042713,rs1045642,rs1057910,rs113993959,rs121434568,rs121434569,
         rs12248560,rs145489027,rs1695,rs17244841,rs17708472,rs1799752,rs1799978,
         rs1800566,rs1801131,rs1801133,rs2032582,rs2108622, rs2279343,rs2279345,
@@ -32,7 +35,7 @@ public class VcfReaderYuta {
     public static void main(String[] args) throws IOException {
 
         long startTimems = System.currentTimeMillis();
-        final String VcfPath = args[0];
+
 
         // rsIDs with Level of Evidence 2A, obtain with:
         // $ awk '$2=="2A" {printf "\"%s\",", $1}' SCV.withrs.tsv
@@ -59,11 +62,20 @@ public class VcfReaderYuta {
 //        System.out.println("AF Results: "+rsID_AF);
 
 
-            BufferedReader schemaReader = new BufferedReader(new FileReader(VcfPath));
-            VCFCodec vcfCodec = new VCFCodec();
-            String line;
-            String headerLine = "";
-            VariantContext vctx;
+        //
+
+
+        final String VcfPath = args[0];
+
+        BufferedReader schemaReader = new BufferedReader(new FileReader(VcfPath));
+        if(FILETYPE=="gz") {
+            GZIPInputStream in = new GZIPInputStream(new FileInputStream(VcfPath));
+            schemaReader = new BufferedReader(new InputStreamReader(in));
+        }
+        VCFCodec vcfCodec = new VCFCodec();
+        String line;
+        String headerLine = "";
+        VariantContext vctx;
         System.out.println("rsID\tfreq(1/1)\tfreq(0/1)\tfreq(0/0)");
             while ((line = schemaReader.readLine()) != null) {
                 if (line.startsWith("#")) {
@@ -77,19 +89,19 @@ public class VcfReaderYuta {
                 if (!line.startsWith("#")) {
                     vctx = vcfCodec.decode(line);
 
-                    // STEP 1: skip those without rsID
+                    /* STEP 1: skip those without rsID */
                     if(vctx.emptyID()) continue;
 
-                    // STEP 2 (version1): if rsID matches, do STEP 3
+                    /* STEP 2 (version1): if rsID matches, do STEP 3 */
                     if(EnumUtils.isValidEnum(rsID.class,vctx.getID())){
                         System.out.print(vctx.getID());
 
-                        // STEP 3: calculate phenotype frequencies for this vctx
+                        /* STEP 3: calculate phenotype frequencies for this vctx */
                         Double[] f = getPhenotypeFreqs(vctx);
                         System.out.println("\t"+f[0]+ "\t"+f[1]+"\t"+f[2]);
                     }
 
-                    // STEP 2 (version 2)
+                    /* STEP 2 (version 2) */
 //                    if(rsID2Alist.contains(vctx.getContig())){
 //                        System.out.println("FOUND" + vctx.getID());
 //
@@ -114,10 +126,6 @@ public class VcfReaderYuta {
 //                            Double alleleFreq = ((Double) ((ArrayList) vctx.getAttribute("AF")).get(i));
 //                        }
 //                    }
-
-
-                /* 2016/03/17 hw: 找出所有有rsID的Variants */
-//                printAllAllelesWithRSID(vctx);
 
 
                 }
