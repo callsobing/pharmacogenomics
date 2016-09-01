@@ -18,7 +18,7 @@ public class VcfReaderYuta {
 
     enum rsID {
         // rsIDs with Level of Evidence 2A, obtain with:
-        // $ awk '$2=="2A" {printf "\"%s\",", $1}' SCV.withrs.tsv
+        // $ awk '$2=="2A" {printf "%s,", $1}' SCV.withrs.tsv
         rs1042713,rs1045642,rs1057910,rs113993959,rs121434568,rs121434569,
         rs12248560,rs145489027,rs1695,rs17244841,rs17708472,rs1799752,rs1799978,
         rs1800566,rs1801131,rs1801133,rs2032582,rs2108622, rs2279343,rs2279345,
@@ -27,9 +27,9 @@ public class VcfReaderYuta {
         rs4680,rs4917639,rs56165452,rs6025,rs61742245,rs7294,rs7412,rs75039782,
         rs77010898,rs776746,rs7900194,rs8050894,rs8175347,rs9923231,rs9934438
 
-        ,rs3883917   //TODO remove tester:  rs3883917       C       T      ... 1/1*2 ...
-        ,rs371543232 //TODO remove tester:  rs371543232     A       G      ... 0/1*1 ... 1/1*11 ...
-        ,rs370482130 //TODO remove tester:  rs370482130     T       C/A    ... 0/1*3 ... 2/2*3 ... 1/1*
+//        ,rs3883917   //TODO remove tester:  rs3883917       C       T      ... 1/1*2 ...
+//        ,rs371543232 //TODO remove tester:  rs371543232     A       G      ... 0/1*1 ... 1/1*11 ...
+//        ,rs370482130 //TODO remove tester:  rs370482130     T       C/A    ... 0/1*3 ... 2/2*3 ... 1/1*
     }
 
     public static void main(String[] args) throws IOException {
@@ -46,7 +46,13 @@ public class VcfReaderYuta {
                 "rs2297595","rs2359612","rs264631","rs264651","rs2740574","rs28371686","rs28399499",
                 "rs2884737","rs3745274","rs3892097","rs4148323","rs4149015","rs4149056","rs4244285",
                 "rs4680","rs4917639","rs56165452","rs6025","rs61742245","rs7294","rs7412","rs75039782",
-                "rs77010898","rs776746","rs7900194","rs8050894","rs8175347","rs9923231","rs9934438");
+                "rs77010898","rs776746","rs7900194","rs8050894","rs8175347","rs9923231","rs9934438"
+
+//                ,"rs3883917"   //TODO remove tester:  rs3883917       C       T      ... 1/1*2 ...
+//                ,"rs371543232" //TODO remove tester:  rs371543232     A       G      ... 0/1*1 ... 1/1*11 ...
+//                ,"rs370482130" //TODO remove tester:  rs370482130     T       C/A    ... 0/1*3 ... 2/2*3 ... 1/1*
+
+        );
 
         EnumMap<rsID,Double[]> rsID_AFs = new EnumMap<>(rsID.class);
 
@@ -92,24 +98,26 @@ public class VcfReaderYuta {
                     /* STEP 1: skip those without rsID */
                     if(vctx.emptyID()) continue;
 
-                    /* STEP 2 (version1): if rsID matches, do STEP 3 */
-                    if(EnumUtils.isValidEnum(rsID.class,vctx.getID())){
-                        System.out.print(vctx.getID());
-
-                        /* STEP 3: calculate phenotype frequencies for this vctx */
-                        Double[] f = getPhenotypeFreqs(vctx);
-                        System.out.println("\t"+f[0]+ "\t"+f[1]+"\t"+f[2]);
-                    }
-
-                    /* STEP 2 (version 2) */
-//                    if(rsID2Alist.contains(vctx.getContig())){
-//                        System.out.println("FOUND" + vctx.getID());
+//                    /* STEP 2 (version1): if rsID matches, do STEP 3 */
+//                    if(EnumUtils.isValidEnum(rsID.class,vctx.getID())){
+//                        System.out.print(vctx.getID());
 //
-//                          // STEP 3
-////                        System.out.println(++i);
-////                        TODO: calPhenotypeFreqs
+//                        /* STEP 3: calculate phenotype frequencies for this vctx */
+//                        for(Double[] freqs : getPhenotypeFreqs(vctx)){
+//                            System.out.println("\t"+freqs[0]+ "\t"+freqs[1]+"\t"+freqs[2]);
+//                        }
+//
 //                    }
 
+                    /* STEP 2 (version 2) */
+                    if(rsID2Alist.contains(vctx.getID())) {
+
+                        /* STEP 3: calculate phenotype frequencies for this vctx */
+                        for (Double[] freqs : getPhenotypeFreqs(vctx)) {
+                            System.out.print(vctx.getID());
+                            System.out.println("\t" + freqs[0] + "\t" + freqs[1] + "\t" + freqs[2]);
+                        }
+                    }
 
 
 
@@ -144,17 +152,20 @@ public class VcfReaderYuta {
 
 
     /* vctx -> phenotype frequencies:{freq(1/1), freq(1/0||0/1), freq(0/0||./.)} */
-    public static Double[] getPhenotypeFreqs(VariantContext vctx){
+    public static List<Double[]> getPhenotypeFreqs(VariantContext vctx){
 
-        int totalChr = vctx.getNSamples();  //496
-        int homCount = vctx.getHomVarCount();
-        int hetCount = vctx.getHetCount();
+        List<Double[]> list = new LinkedList<>();
 
-        // counting by hand
+        //single variant
+        if(vctx.getNAlleles()==2) {
+
+            int totalChr = vctx.getNSamples();  //496
+            int homCount = vctx.getHomVarCount();
+            int hetCount = vctx.getHetCount();
+
+            // counting by hand
 //        int homCount = 0, hetCount = 0;
-//        if(vctx.getAlternateAlleles().size()==1){       //若為1便好處理，若非則須
-//
-//           for(Genotype gt:vctx.getGenotypesOrderedByName()) {
+//          for(Genotype gt:vctx.getGenotypesOrderedByName()) {
 //               if(gt.isCalled()){
 //
 //                   if(gt.isHom()) homCount++;
@@ -162,16 +173,44 @@ public class VcfReaderYuta {
 //
 //               }else continue;
 //           }
-//
-//            System.out.println("\thomCount="+homCount+"\thetCount="+hetCount+"\ttotalChr="+totalChr);
-//            System.out.println("getHetCount="+vctx.getHetCount()+
-//                    "\tgetHomRefCount="+vctx.getHomRefCount()+
-//                    "\tgetHomVarCount="+vctx.getHomVarCount()+
-//                    "\tgetMixedCount="+vctx.getMixedCount());
-//
-//        }else System.out.println("...haven't dealt with multi alt cases :P");
 
-        return new Double[]{homCount/(double)totalChr, hetCount/(double)totalChr, ((totalChr-homCount)-hetCount)/(double)totalChr};
+            list.add(new Double[]{homCount / (double) totalChr, hetCount / (double) totalChr, ((totalChr - homCount) - hetCount) / (double) totalChr});
+            return list;
+
+
+
+        //multi variants
+        }else {
+
+            for(int i=0;i<vctx.getNAlleles()-1;i++){    // i = 0,1...2
+
+                int totalChr = vctx.getNSamples();  //496
+                Double homCount = 0.0;
+                Double hetCount = 0.0;
+
+                Allele altAllele = vctx.getAlternateAllele(i);
+
+
+                for(int j=0;j<vctx.getNSamples();j++){
+                    int altCount = vctx.getGenotype(j).countAllele(altAllele);
+                    if (altCount==0){
+                        continue;
+                    }else if (altCount==1){
+                        hetCount++;
+                    }else if (altCount==2){
+                        homCount++;
+                    }else {
+                        System.out.println("WTF!?!?!?");
+                    }
+                }
+
+                list.add(new Double[]{homCount/totalChr, hetCount/totalChr, ((totalChr-homCount)-hetCount)/totalChr});
+
+            }
+            return list;
+
+        }
+
     }
 
 
@@ -516,7 +555,7 @@ public class VcfReaderYuta {
     }
 
     /*以sout測試各種VariantContext的methods和members*/
-    public static void PrintvctxProperties(VariantContext vctx, VCFHeader head){
+    public static void PrintVctxProperties(VariantContext vctx){
         System.out.println("-----------------------\n"+
 
                         " RsID: \t" + vctx.getID() + "\n"+  // rs62224611
@@ -534,6 +573,7 @@ public class VcfReaderYuta {
                         " -first alt length: \t" + vctx.getAlternateAlleles().get(0).length() +"\n"+    // 1
                         " -allele Numbers: \t" + vctx.getAlternateAlleles().size() +"\n"+               // 2
                         " -allele Numbers': \t" + vctx.getNAlleles()+"\n\n"+                            // 3 (1 ref + 2 alt)
+                        " " +vctx +
 
                         " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)) +"\n"+                     // [HG00096 C|A*]
                         " -GT(*|*): \t" + vctx.getGenotype(vctx.getSampleNamesOrderedByName().get(0)).getGenotypeString() +"\n"+ // C|A
@@ -550,7 +590,7 @@ public class VcfReaderYuta {
                         "Other properties:\n"+
                         " -getContig(): \t" + vctx.getContig() + "\n"+                          // 22
                         " -getSource(): \t" + vctx.getSource() + "\n"+                          // Unknown
-                        " -calcVCFGenotypeKeys(): \t" + vctx.calcVCFGenotypeKeys(head)+"\n"+    // [GT]
+//                        " -calcVCFGenotypeKeys(): \t" + vctx.calcVCFGenotypeKeys(head)+"\n"+    // [GT]
 
                         "-----------------------\n"
         );
