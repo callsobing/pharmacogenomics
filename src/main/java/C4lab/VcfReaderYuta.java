@@ -40,24 +40,58 @@ public class VcfReaderYuta {
         // rsIDs with Level of Evidence 2A, obtain with:
         // $ awk '$2=="2A" {printf "\"%s\",", $1}' SCV.withrs.tsv
         List<String> rsID2Alist = Arrays.asList(
-                "rs1042713","rs1045642","rs1057910","rs113993959","rs121434568","rs121434569",
-                "rs12248560","rs145489027","rs1695","rs17244841","rs17708472","rs1799752","rs1799978",
-                "rs1800566","rs1801131","rs1801133","rs2032582","rs2108622","rs2279343","rs2279345",
-                "rs2297595","rs2359612","rs264631","rs264651","rs2740574","rs28371686","rs28399499",
-                "rs2884737","rs3745274","rs3892097","rs4148323","rs4149015","rs4149056","rs4244285",
-                "rs4680","rs4917639","rs56165452","rs6025","rs61742245","rs7294","rs7412","rs75039782",
-                "rs77010898","rs776746","rs7900194","rs8050894","rs8175347","rs9923231","rs9934438"
 
-//                ,"rs3883917"   //TODO remove tester:  rs3883917       C       T      ... 1/1*2 ...
-//                ,"rs371543232" //TODO remove tester:  rs371543232     A       G      ... 0/1*1 ... 1/1*11 ...
-//                ,"rs370482130" //TODO remove tester:  rs370482130     T       C/A    ... 0/1*3 ... 2/2*3 ... 1/1*
+                // rsIDs with Level of Evidence 2A, obtain with:
+                // $ awk '$2=="2A" {printf "%s,", $1}' SCV.withrs.tsv
+//                chr1
+                "rs1801131","rs1801133","rs2297595","rs6025",
+//                chr2
+                "rs264631","rs264651","rs4148323","rs8175347",
+//                chr3
+//                chr4
+                "rs145489027",
+//                chr5
+                "rs1042713","rs17244841",
+//                chr6
+//                chr7
+                "rs1045642","rs113993959","rs121434568","rs121434569","rs2032582","rs2740574","rs75039782","rs77010898", "rs776746",
+//                chr8
+//                chr9
+//                chr10
+                "rs1057910","rs12248560","rs28371686","rs4244285","rs4917639","rs56165452","rs7900194",
+//                chr11
+                "rs1695","rs1799978",
+//                chr12
+                "rs4149015","rs4149056",
+//                chr13
+//                chr14
+//                chr15
+//                chr16
+                "rs17708472","rs1800566","rs2359612","rs2884737","rs61742245","rs7294","rs8050894","rs9923231","rs9934438",
+//                chr17
+                "rs1799752",
+//                chr18
+//                chr19
+                "rs2108622","rs2279343","rs2279345","rs28399499","rs3745274","rs7412",
+//                chr20
+//                chr21
+//                chr22
+                "rs3892097","rs4680"
+//                chrX
+
+//                chrY
+//                chrMT
+//                ,"rs587755077"  //TODO remove tester:  this is just the first SNP of ALL.chr22.*.vcf
+//                ,"rs3883917"    //TODO remove tester:  rs3883917       C       T      ... 1/1*2 ...
+//                ,"rs371543232"  //TODO remove tester:  rs371543232     A       G      ... 0/1*1 ... 1/1*11 ...
+//                ,"rs370482130"  //TODO remove tester:  rs370482130     T       C/A    ... 0/1*3 ... 2/2*3 ... 1/1*
 
         );
 
         EnumMap<rsID,Double[]> rsID_AFs = new EnumMap<>(rsID.class);
 
 
-        /* 2016/03/31 hw2: 找出(算出)八個rsID分別對應的Allele frequency */
+/* 2016/03/31 hw2: 找出(算出)八個rsID分別對應的Allele frequency */
 //        System.out.println("\nTask:找出(算出)TargetRSIDList中每個rsID對應的Allele frequency...(please wait)");
 //        HashMap<String,Double> rsID_AF = new HashMap<String, Double>();
 //        for(int i=0;i<TargetRSIDList.length;i++) {
