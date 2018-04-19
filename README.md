@@ -1,4 +1,4 @@
-# pharmacogenomics
+# Pharmacogenomics for Taiwan BioBank project
 
 1. pull 新的 code之後除了看到這個readme file之外, pom.xml同時也會被更新
 
